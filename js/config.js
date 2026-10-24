@@ -64,6 +64,14 @@ const CONFIG = {
     overAt: 150,      // この時間を過ぎると「煮すぎ」になり、食材が無駄になる
   },
 
+  // 手洗い（流しをタップしてこする。食洗機が動いている間でも1個ずつ洗える）
+  // 速すぎるタップは数えないので、1個洗うのに最短で taps × minInterval 秒かかる
+  // （初期値なら 20回 × 0.5秒 = 10秒。食洗機は1個あたり約9秒なので、手洗いのほうが遅い）
+  handWash: {
+    taps: 20,         // 1個洗い終わるのに必要なタップ回数
+    minInterval: 0.5, // タップとして数える最短の間隔（現実の秒）。これより速いタップは無視
+  },
+
   // 盛りの表示名
   sizeNames: {
     small: '小',
@@ -147,7 +155,7 @@ const CONFIG = {
       totalBowls: 8,               // 店にあるどんぶりの総数
       sinkCapacity: 6,             // 流しに置ける上限
       washerCapacity: 5,           // 食洗機に一度に入る数
-      washTime: 3 * 60,            // 洗浄にかかる時間
+      washTime: 135,               // 食洗機の洗浄にかかる時間（ゲーム内2分15秒 = 実時間45秒）
       patience: 4 * 60,            // 客が待てる時間
       eatTime: [2 * 60, 3 * 60],   // 客が食べている時間
       customerInterval: [60, 100], // 次の客が来るまでの間隔
@@ -164,7 +172,7 @@ const CONFIG = {
       totalBowls: 10,
       sinkCapacity: 7,
       washerCapacity: 5,
-      washTime: 3 * 60,
+      washTime: 135,
       patience: 3 * 60,
       eatTime: [2 * 60, 3 * 60],
       customerInterval: [40, 75],
@@ -181,7 +189,7 @@ const CONFIG = {
       totalBowls: 14,
       sinkCapacity: 8,
       washerCapacity: 6,
-      washTime: 3 * 60,
+      washTime: 135,
       patience: 150,
       eatTime: [2 * 60, 3 * 60],
       customerInterval: [25, 50],

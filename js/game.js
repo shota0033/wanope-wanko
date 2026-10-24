@@ -54,6 +54,10 @@ const Game = {
       pots: Array(CONFIG.boil.pots).fill(null),
 
       sink: 0,              // 流しにある汚れたどんぶりの数
+      // 手洗い中のどんぶり。null なら手洗いしていない、洗っていれば { taps: こすった回数 }
+      handWash: null,
+      realTime: 0,          // ゲーム開始からの「現実の」経過秒数（手洗いのタップ間隔の判定に使う）
+      lastScrubAt: -999,    // 最後にこすったと数えた時刻（realTime）
 
       // 食洗機。status は 'idle'（空）/ 'washing'（洗浄中）/ 'done'（洗い上がり）
       washer: { status: 'idle', count: 0, timeLeft: 0 },
@@ -75,6 +79,7 @@ const Game = {
     if (!s || s.ended) return; // 終わったら時間を止める
     const dt = realDt * CONFIG.timeScale; // ゲーム内の経過秒数
     s.time += dt;
+    s.realTime += realDt;
 
     // --- 先輩が来る時間まで耐えたらクリア ---
     if (s.time >= s.diff.duration) {
@@ -533,6 +538,41 @@ const Game = {
     if (w.status !== 'done' || w.count <= 0) return false;
     w.count--;
     if (w.count === 0) w.status = 'idle';
+    return true;
+  },
+
+  // 食洗機から1個だけ置き場へ移す（置き場へドラッグしたとき）
+  moveOneWasherToStack() {
+    if (!this.takeOneFromWasher()) return false;
+    this.state.cleanStack++;
+    this.emit('unloadWasher');
+    return true;
+  },
+
+  // 流しをタップ：手洗いでこする
+  //   ・手洗い中のどんぶりがなければ、流しから1個取って洗い始める
+  //   ・速すぎるタップ（minInterval より短い間隔）は数えない
+  //   ・必要な回数こすったら、きれいなどんぶり置き場へ自動で移る
+  scrub() {
+    const s = this.state;
+    const hw = CONFIG.handWash;
+    if (!s.handWash) {
+      if (s.sink <= 0) {
+        this.emit('hint', { text: '流しに洗うどんぶりがありません' });
+        return false;
+      }
+      s.sink--;
+      s.handWash = { taps: 0 };
+    }
+    if (s.realTime - s.lastScrubAt < hw.minInterval) return false; // 速すぎるので数えない
+    s.lastScrubAt = s.realTime;
+    s.handWash.taps++;
+    this.emit('scrub');
+    if (s.handWash.taps >= hw.taps) {
+      s.handWash = null;
+      s.cleanStack++;
+      this.emit('handWashDone');
+    }
     return true;
   },
 

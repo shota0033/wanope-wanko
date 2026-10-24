@@ -52,7 +52,12 @@ const View = {
     // --- 洗い場 ---
     els.sink = this.buildZone('sink', '流し');
     els.sinkContent = makeEl('div', 'zone-content', els.sink);
+    // 手洗いの表示（こすっている途中のどんぶりと、進み具合のバー）
+    els.handWash = makeEl('div', 'handwash', els.sink);
+    els.handWashBar = this.buildBar(els.handWash, 'handwash-bar');
+    els.handWashHint = makeEl('div', 'handwash-hint', els.handWash);
     Input.register(els.sink, {
+      tap: () => Game.scrub(), // タップで手洗い（こする）
       drop: {
         accepts: (p) => p.type === 'dirtyBowl',
         onDrop: (p) => Game.clearSeat(p.seat),
@@ -75,7 +80,10 @@ const View = {
         }
       },
     });
-    Input.register(els.washerBtn, { tap: () => Game.startWasher() });
+    // ボタンは、洗い上がっていれば「取り出す」、それ以外は「洗浄開始」として働く
+    Input.register(els.washerBtn, {
+      tap: () => (Game.state.washer.status === 'done' ? Game.unloadWasher() : Game.startWasher()),
+    });
 
     els.stack = this.buildZone('stack', 'どんぶり置き場');
     els.stackContent = makeEl('div', 'zone-content', els.stack);
@@ -83,6 +91,11 @@ const View = {
       drag: () => (Game.state.cleanStack > 0 ? { type: 'cleanBowl', from: 'stack' } : null),
       ghost: () => this.miniBowlGhost('clean'),
       tap: () => Game.emit('hint', { text: 'どんぶりは作業台へドラッグしてね' }),
+      // 食洗機から1個ずつドラッグして戻すこともできる
+      drop: {
+        accepts: (p) => p.type === 'cleanBowl' && p.from === 'washer',
+        onDrop: () => Game.moveOneWasherToStack(),
+      },
     });
 
     // --- 作業台 ---
@@ -329,10 +342,16 @@ const View = {
     s.seats.forEach((_, i) => this.renderSeat(i));
     s.slots.forEach((_, i) => this.renderSlot(i));
 
-    // 流し
+    // 流し（枠に収まるよう、積み重ねの絵は最大6個まで）
     setHTML(els.sinkContent,
-      `<div class="bowl-pile">${this.miniBowls('dirty', s.sink)}</div>
+      `<div class="bowl-pile">${this.miniBowls('dirty', Math.min(s.sink, 6))}</div>
        <div class="count ${s.sink >= s.diff.sinkCapacity ? 'warn' : ''}">${s.sink} / ${s.diff.sinkCapacity}</div>`);
+    // 手洗い
+    const hw = s.handWash;
+    els.handWashBar.bar.style.visibility = hw ? 'visible' : 'hidden';
+    if (hw) els.handWashBar.fill.style.width = (hw.taps / CONFIG.handWash.taps) * 100 + '%';
+    setText(els.handWashHint, hw ? 'ゴシゴシ…タップ！' : (s.sink > 0 ? 'タップで手洗い' : ''));
+    els.sink.classList.toggle('washing-by-hand', !!hw);
 
     // 食洗機
     const w = s.washer;
@@ -342,7 +361,8 @@ const View = {
     } else if (w.status === 'washing') {
       washerHTML = `<div class="washer-status">洗浄中… ${w.count}個</div>`;
     } else {
-      washerHTML = `<div class="washer-status done">洗い上がり ×${w.count}<br><small>タップで置き場へ</small></div>`;
+      washerHTML = `<div class="bowl-pile">${this.miniBowls('clean', Math.min(w.count, 3))}</div>
+                    <div class="washer-status done">洗い上がり ×${w.count}</div>`;
     }
     setHTML(els.washerContent, washerHTML);
     els.washer.classList.toggle('is-done', w.status === 'done');
@@ -350,7 +370,11 @@ const View = {
     if (w.status === 'washing') {
       els.washerBar.fill.style.width = (1 - w.timeLeft / s.diff.washTime) * 100 + '%';
     }
-    els.washerBtn.classList.toggle('disabled', !Game.canStartWasher());
+    // 洗い上がったら、ボタンが緑の「取り出す」に変わる
+    const isDone = w.status === 'done';
+    setText(els.washerBtn, isDone ? '取り出す' : '洗浄開始');
+    els.washerBtn.classList.toggle('unload', isDone);
+    els.washerBtn.classList.toggle('disabled', !isDone && !Game.canStartWasher());
 
     // どんぶり置き場
     setHTML(els.stackContent,
@@ -562,11 +586,13 @@ const View = {
         break;
       case 'gameEnd':        this.showEnd(ev.kind); break;
       case 'washDone':       this.floatText(this.els.washer, '✨ 洗い上がり'); break;
+      case 'scrub':          this.restartAnimation(this.els.sink, 'scrubbing'); break;
+      case 'handWashDone':   this.floatText(this.els.stack, '✨ 手洗い完了', 'small'); break;
       case 'trash':          this.floatText(this.els.trash, 'ポイッ', 'small'); break;
       case 'overcooked':     this.floatText(this.els.pots[ev.pot].root, '💦 煮すぎた！', 'bad'); break;
       case 'potDiscard':     this.floatText(this.els.pots[ev.pot].root, '食材を捨てた', 'small'); break;
       case 'returnBowl':     this.floatText(this.els.stack, '置き場へ戻した', 'small'); break;
-      case 'chop':           this.els.board.classList.remove('chopping'); void this.els.board.offsetWidth; this.els.board.classList.add('chopping'); break;
+      case 'chop':           this.restartAnimation(this.els.board, 'chopping'); break;
       case 'prepDone': {
         const t = toppingInfo(ev.id);
         const text = ev.added > 0 ? `✨ ${t.name} +${ev.added}` : `${t.name}は満タンでした`;
@@ -596,6 +622,13 @@ const View = {
     const btn = makeEl('button', 'btn end-btn', overlay);
     btn.textContent = '結果を見る';
     btn.onclick = () => Scenes.go('result', Game.summary());
+  },
+
+  // CSSのアニメーションを最初からやり直す（タップのたびに動かしたいとき用）
+  restartAnimation(el, className) {
+    el.classList.remove(className);
+    void el.offsetWidth; // ブラウザに一度描き直させるためのおまじない
+    el.classList.add(className);
   },
 
   // 要素の上にふわっと文字を出す

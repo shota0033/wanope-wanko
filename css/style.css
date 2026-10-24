@@ -428,6 +428,25 @@ html, body {
 .zone-washer.is-done { box-shadow: 0 0 0 3px #7ccf8a inset; cursor: pointer; }
 .washer-bar { width: 150px; }
 .washer-btn { min-height: 64px; width: 150px; padding: 0; font-size: 20px; background: #3b8ed0; box-shadow: 0 4px 0 #24649a; }
+/* 洗い上がったら「取り出す」ボタン（緑・少し揺れて目立たせる） */
+.washer-btn.unload { background: #3aa64c; box-shadow: 0 4px 0 #237233; font-size: 24px; animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse {
+  50% { transform: scale(1.06); }
+}
+
+/* ---------- 流しの手洗い ---------- */
+.zone-sink { justify-content: space-between; cursor: pointer; }
+.handwash { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.handwash-bar { width: 120px; }
+.handwash-bar .bar-fill { background: #3b8ed0; }
+.handwash-hint { height: 18px; font-size: 14px; font-weight: bold; color: #2f6e9a; }
+.zone-sink.washing-by-hand { background: #d4e8f5; }
+/* こするたびに、流しが少し揺れる */
+.zone-sink.scrubbing { animation: scrub 0.15s ease-out; }
+@keyframes scrub {
+  33% { transform: translateX(-3px); }
+  66% { transform: translateX(3px); }
+}
 
 /* ---------- 進行バー ---------- */
 .bar {
