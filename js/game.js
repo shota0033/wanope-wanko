@@ -50,6 +50,8 @@ const Game = {
       stock: Object.fromEntries(toppingIds.map((id) => [id, CONFIG.stock.initial])),
       // まな板。null なら空き、食材があれば { id: トッピングID, taps: 切った回数 }
       board: null,
+      // 鍋。null なら空き、食材があれば { id: トッピングID, time: 茹でている時間, over: 煮すぎたか }
+      pots: Array(CONFIG.boil.pots).fill(null),
 
       sink: 0,              // 流しにある汚れたどんぶりの数
 
@@ -114,6 +116,16 @@ const Game = {
         this.emit('washDone');
       }
     }
+
+    // --- 鍋（茹でている時間を進める） ---
+    s.pots.forEach((pot, i) => {
+      if (!pot) return;
+      pot.time += dt;
+      if (!pot.over && pot.time >= CONFIG.boil.overAt) {
+        pot.over = true; // 取り出すのが遅れて煮すぎた
+        this.emit('overcooked', { pot: i });
+      }
+    });
 
     // --- 新しい客 ---
     s.nextCustomerIn -= dt;
@@ -299,16 +311,80 @@ const Game = {
   },
 
   // ---------------------------------------------------------
-  // 下処理（冷蔵庫 → まな板 → タップで切る → 容器に補充）
+  // 下処理
+  //   切る食材   … 冷蔵庫 → まな板 → タップで切る → 容器に補充
+  //   茹でる食材 … 冷蔵庫 → 鍋 → 待つ → ちょうどいいときにタップで取り出す → 容器に補充
   // ---------------------------------------------------------
 
   // 冷蔵庫の食材をまな板に置く（まな板は1つなので、空いているときだけ）
   putOnBoard(toppingId) {
     const s = this.state;
     if (s.board || !s.toppingIds.includes(toppingId)) return false;
+    if (toppingInfo(toppingId).prep !== 'cut') {
+      this.emit('hint', { text: 'これは鍋で茹でる食材です' });
+      return false;
+    }
     s.board = { id: toppingId, taps: 0 };
     this.emit('putOnBoard');
     return true;
+  },
+
+  // 冷蔵庫の食材を鍋に入れる（空いている鍋だけ）
+  putInPot(potIndex, toppingId) {
+    const s = this.state;
+    if (s.pots[potIndex] || !s.toppingIds.includes(toppingId)) return false;
+    if (toppingInfo(toppingId).prep !== 'boil') {
+      this.emit('hint', { text: 'これはまな板で切る食材です' });
+      return false;
+    }
+    s.pots[potIndex] = { id: toppingId, time: 0, over: false };
+    this.emit('putInPot', { pot: potIndex });
+    return true;
+  },
+
+  // 鍋の茹で具合：'boiling'（まだ）/ 'ready'（ちょうどいい）/ 'over'（煮すぎ）
+  potStatus(pot) {
+    if (pot.over) return 'over';
+    return pot.time >= CONFIG.boil.readyAt ? 'ready' : 'boiling';
+  },
+
+  // 鍋をタップ：ちょうどいいなら取り出して補充、煮すぎなら捨てる
+  takeFromPot(potIndex) {
+    const s = this.state;
+    const pot = s.pots[potIndex];
+    if (!pot) {
+      this.emit('hint', { text: '冷蔵庫から茹でる食材を鍋へ運んでね' });
+      return false;
+    }
+    const status = this.potStatus(pot);
+    if (status === 'boiling') {
+      // 早すぎるタップは失敗にしない（うっかり押しても大丈夫）
+      this.emit('hint', { text: 'まだ茹でている途中です' });
+      return false;
+    }
+    s.pots[potIndex] = null;
+    if (status === 'over') {
+      this.emit('potDiscard', { pot: potIndex });
+      return false;
+    }
+    this.refillStock(pot.id);
+    return true;
+  },
+
+  // 鍋の食材をゴミ箱へ捨てる
+  clearPot(potIndex) {
+    if (!this.state.pots[potIndex]) return false;
+    this.state.pots[potIndex] = null;
+    this.emit('trash');
+    return true;
+  },
+
+  // 下処理が終わった食材を容器に補充する（上限を超えた分は捨てる）
+  refillStock(toppingId) {
+    const s = this.state;
+    const before = s.stock[toppingId];
+    s.stock[toppingId] = Math.min(CONFIG.stock.max, before + CONFIG.stock.refill);
+    this.emit('prepDone', { id: toppingId, added: s.stock[toppingId] - before });
   },
 
   // まな板をタップして切る。必要な回数に達したら容器に補充する
@@ -322,10 +398,8 @@ const Game = {
     this.emit('chop');
     if (s.board.taps >= CONFIG.stock.chopTaps) {
       const id = s.board.id;
-      const before = s.stock[id];
-      s.stock[id] = Math.min(CONFIG.stock.max, before + CONFIG.stock.refill);
       s.board = null;
-      this.emit('prepDone', { id, added: s.stock[id] - before });
+      this.refillStock(id);
     }
     return true;
   },
@@ -468,8 +542,13 @@ const Game = {
 };
 
 // -------------------------------------------------------------
-// 便利な小道具（ランダム関係）
+// 便利な小道具
 // -------------------------------------------------------------
+
+// トッピングIDから、名前・アイコン・下処理の方法などの情報を取り出す
+function toppingInfo(id) {
+  return CONFIG.toppings.find((t) => t.id === id);
+}
 
 // 配列からランダムに1つ選ぶ
 function randomPick(arr) {

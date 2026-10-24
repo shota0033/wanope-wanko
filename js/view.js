@@ -130,11 +130,12 @@ const View = {
     `);
     Input.register(els.trash, {
       drop: {
-        accepts: (p) => ['workBowl', 'placedTopping', 'boardItem'].includes(p.type),
+        accepts: (p) => ['workBowl', 'placedTopping', 'boardItem', 'potItem'].includes(p.type),
         onDrop: (p) => {
           if (p.type === 'workBowl') Game.trashBowl(p.slot);
           else if (p.type === 'placedTopping') Game.discardTopping(p.slot, p.id);
           else if (p.type === 'boardItem') Game.clearBoard();
+          else if (p.type === 'potItem') Game.clearPot(p.pot);
         },
       },
     });
@@ -149,11 +150,40 @@ const View = {
       drag: () => (Game.state.board ? { type: 'boardItem' } : null),
       ghost: () => this.iconGhost(toppingInfo(Game.state.board.id), 'whole_'),
       drop: {
+        // 切る食材だけを光らせる（茹でる食材を落としたときは、Game 側で「鍋へ」と知らせる）
         accepts: (p) => p.type === 'ingredient' && !Game.state.board,
         onDrop: (p) => {
           if (Game.putOnBoard(p.id)) this.setFridgeOpen(false); // 置けたら冷蔵庫は自動で閉じる
         },
       },
+    });
+
+    // --- コンロ（鍋） ---
+    els.stove = this.buildZone('stove', 'コンロ');
+    const potArea = makeEl('div', 'pot-area', els.stove);
+    els.pots = s.pots.map((_, i) => {
+      const root = makeEl('div', 'pot', potArea);
+      const content = makeEl('div', 'pot-content', root);
+      const gauge = makeEl('div', 'pot-gauge', root);
+      // ゲージの中の「ちょうどいい」範囲（緑の帯）
+      const zone = makeEl('div', 'pot-gauge-zone', gauge);
+      zone.style.left = (CONFIG.boil.readyAt / CONFIG.boil.overAt) * 100 + '%';
+      zone.style.right = '0';
+      const fill = makeEl('div', 'pot-gauge-fill', gauge);
+      const label = makeEl('div', 'pot-label', root);
+      Input.register(root, {
+        tap: () => Game.takeFromPot(i),
+        // 鍋の食材は、ゴミ箱へドラッグして捨てられる
+        drag: () => (Game.state.pots[i] ? { type: 'potItem', pot: i } : null),
+        ghost: () => this.iconGhost(toppingInfo(Game.state.pots[i].id), 'whole_'),
+        drop: {
+          accepts: (p) => p.type === 'ingredient' && !Game.state.pots[i],
+          onDrop: (p) => {
+            if (Game.putInPot(i, p.id)) this.setFridgeOpen(false);
+          },
+        },
+      });
+      return { root, content, fill, label, key: null };
     });
 
     // --- 冷蔵庫（タップすると、トッピング棚の上に食材の一覧が開く） ---
@@ -165,7 +195,7 @@ const View = {
     Input.register(els.fridge, { tap: () => this.setFridgeOpen(!this.fridgeOpen) });
 
     els.fridgePanel = makeEl('div', 'fridge-panel', root);
-    els.fridgePanel.innerHTML = '<div class="fridge-panel-title">冷蔵庫：食材をまな板へドラッグ</div>';
+    els.fridgePanel.innerHTML = '<div class="fridge-panel-title">冷蔵庫：🔪はまな板へ、♨️は鍋へドラッグ</div>';
     const closeBtn = makeEl('div', 'btn fridge-close', els.fridgePanel);
     closeBtn.textContent = '閉じる';
     Input.register(closeBtn, { tap: () => this.setFridgeOpen(false) });
@@ -173,7 +203,9 @@ const View = {
     for (const id of s.toppingIds) {
       const t = toppingInfo(id);
       const cell = makeEl('div', 'topping-cell', fridgeGrid);
-      cell.innerHTML = `${Assets.icon('whole_' + id, t.icon, 'topping-icon')}<span class="topping-name">${t.name}</span>`;
+      // 左上に下処理の方法の印（🔪 切る / ♨️ 茹でる）
+      cell.innerHTML = `${Assets.icon('whole_' + id, t.icon, 'topping-icon')}<span class="topping-name">${t.name}</span>` +
+        `<span class="prep-mark prep-${t.prep}">${t.prep === 'boil' ? '♨️' : '🔪'}</span>`;
       Input.register(cell, {
         drag: () => ({ type: 'ingredient', id }),
         ghost: () => this.iconGhost(t, 'whole_'),
@@ -332,10 +364,29 @@ const View = {
       els.boardBar.bar.style.display = '';
       els.boardBar.fill.style.width = (b.taps / CONFIG.stock.chopTaps) * 100 + '%';
     } else {
-      setHTML(els.boardContent, '<div class="zone-hint">冷蔵庫の食材を<br>ここへ</div>');
+      setHTML(els.boardContent, '<div class="zone-hint">🔪の食材を<br>ここへ</div>');
       els.boardBar.bar.style.display = 'none';
     }
     els.board.classList.toggle('has-item', !!b);
+
+    // 鍋
+    s.pots.forEach((pot, i) => {
+      const e = els.pots[i];
+      const status = pot ? Game.potStatus(pot) : 'empty';
+      const key = pot ? pot.id + '|' + status : 'empty';
+      if (e.key !== key) {
+        e.key = key;
+        e.content.innerHTML = pot ? Assets.icon('whole_' + pot.id, toppingInfo(pot.id).icon) : '';
+        e.label.innerHTML = {
+          empty: '♨️の食材を<br>ここへ',
+          boiling: '茹でています…',
+          ready: 'ちょうどいい！<br>タップで取り出す',
+          over: '煮すぎ…<br>タップで捨てる',
+        }[status];
+        e.root.className = 'pot pot-' + status;
+      }
+      e.fill.style.width = pot ? Math.min(1, pot.time / CONFIG.boil.overAt) * 100 + '%' : '0';
+    });
   },
 
   // 冷蔵庫の一覧を開く・閉じる（開いている間はトッピング棚の上に重なる）
@@ -492,6 +543,8 @@ const View = {
         break;
       case 'washDone':       this.floatText(this.els.washer, '✨ 洗い上がり'); break;
       case 'trash':          this.floatText(this.els.trash, 'ポイッ', 'small'); break;
+      case 'overcooked':     this.floatText(this.els.pots[ev.pot].root, '💦 煮すぎた！', 'bad'); break;
+      case 'potDiscard':     this.floatText(this.els.pots[ev.pot].root, '食材を捨てた', 'small'); break;
       case 'returnBowl':     this.floatText(this.els.stack, '置き場へ戻した', 'small'); break;
       case 'chop':           this.els.board.classList.remove('chopping'); void this.els.board.offsetWidth; this.els.board.classList.add('chopping'); break;
       case 'prepDone': {
@@ -551,9 +604,4 @@ function setHTML(el, html) {
 function setText(el, text) {
   text = String(text);
   if (el.textContent !== text) el.textContent = text;
-}
-
-// トッピングIDから、名前やアイコンの情報を取り出す
-function toppingInfo(id) {
-  return CONFIG.toppings.find((t) => t.id === id);
 }

@@ -54,7 +54,14 @@ const CONFIG = {
     initial: 5,       // ゲーム開始時の残量（人前）
     lowWarning: 2,    // 残量がこの数以下になったら、数字を目立たせる
     refill: 5,        // 1回の下処理で補充される量（人前）。上限を超えた分は捨てる
-    chopTaps: 10,     // 下処理を終えるのに必要なタップ回数
+    chopTaps: 10,     // 「切る」食材：下処理を終えるのに必要なタップ回数
+  },
+
+  // 「茹でる」食材の設定（時間はゲーム内の秒）
+  boil: {
+    pots: 1,          // 鍋の数（1〜2）
+    readyAt: 90,      // 鍋に入れてから、この時間で「ちょうどいい」になる
+    overAt: 150,      // この時間を過ぎると「煮すぎ」になり、食材が無駄になる
   },
 
   // 盛りの表示名
@@ -68,23 +75,28 @@ const CONFIG = {
   // トッピング一覧
   // 難易度で使う種類数が少ないときは、上から順に使います。
   // 新しいトッピングを増やすときは、ここに1行足すだけでOKです。
+  //   prep … 下処理の方法。'cut' = まな板で切る / 'boil' = 鍋で茹でる
   // ---------------------------------------------------------
   toppings: [
-    { id: 'carrot',      name: 'ニンジン',     icon: '🥕' },
-    { id: 'broccoli',    name: 'ブロッコリー', icon: '🥦' },
-    { id: 'beef',        name: '牛肉',         icon: '🥩' },
-    { id: 'chicken',     name: '鶏ささみ',     icon: '🍗' },
-    { id: 'salmon',      name: 'サーモン',     icon: '🐟' },
-    { id: 'egg',         name: 'ゆで卵',       icon: '🥚' },
-    { id: 'pumpkin',     name: 'かぼちゃ',     icon: '🎃' },
-    { id: 'sweetpotato', name: 'さつまいも',   icon: '🍠' },
-    { id: 'cabbage',     name: 'キャベツ',     icon: '🥬' },
-    { id: 'corn',        name: 'とうもろこし', icon: '🌽' },
-    { id: 'apple',       name: 'りんご',       icon: '🍎' },
-    { id: 'blueberry',   name: 'ブルーベリー', icon: '🫐' },
-    { id: 'banana',      name: 'バナナ',       icon: '🍌' },
-    { id: 'cheese',      name: 'チーズ',       icon: '🧀' },
-    { id: 'potato',      name: 'じゃがいも',   icon: '🥔' },
+    { id: 'carrot',      name: 'ニンジン',     icon: '🥕', prep: 'cut'  },
+    { id: 'broccoli',    name: 'ブロッコリー', icon: '🥦', prep: 'boil' },
+    { id: 'beef',        name: '牛肉',         icon: '🥩', prep: 'cut'  },
+    { id: 'chicken',     name: '鶏ささみ',     icon: '🍗', prep: 'boil' },
+    { id: 'salmon',      name: 'サーモン',     icon: '🐟', prep: 'cut'  },
+    { id: 'egg',         name: 'ゆで卵',       icon: '🥚', prep: 'boil' },
+    { id: 'pumpkin',     name: 'かぼちゃ',     icon: '🎃', prep: 'boil' },
+    { id: 'sweetpotato', name: 'さつまいも',   icon: '🍠', prep: 'boil' },
+    { id: 'cabbage',     name: 'キャベツ',     icon: '🥬', prep: 'cut'  },
+    { id: 'corn',        name: 'とうもろこし', icon: '🌽', prep: 'boil' },
+    { id: 'apple',       name: 'りんご',       icon: '🍎', prep: 'cut'  },
+    { id: 'blueberry',   name: 'ブルーベリー', icon: '🫐', prep: 'cut'  },
+    { id: 'banana',      name: 'バナナ',       icon: '🍌', prep: 'cut'  },
+    { id: 'cheese',      name: 'チーズ',       icon: '🧀', prep: 'cut'  },
+    { id: 'potato',      name: 'じゃがいも',   icon: '🥔', prep: 'boil' },
+    { id: 'pork',        name: '豚肉',         icon: '🐖', prep: 'boil' },
+    { id: 'peas',        name: 'えんどう豆',   icon: '🫛', prep: 'boil' },
+    { id: 'cucumber',    name: 'きゅうり',     icon: '🥒', prep: 'cut'  },
+    { id: 'strawberry',  name: 'いちご',       icon: '🍓', prep: 'cut'  },
   ],
 
   // 客の犬の見た目（仮の絵文字。ランダムで選ばれる）
@@ -154,7 +166,7 @@ const CONFIG = {
       duration: 20 * 60,
       seats: 10,
       workbenchSlots: 3,
-      toppingCount: 15,
+      toppingCount: 19,
       toppingsPerOrder: [1, 4],
       totalBowls: 14,
       sinkCapacity: 8,
