@@ -12,6 +12,9 @@
 //   toSink（流しに置いた） / bowlBroken（どんぶりが割れた）
 //   washStart（洗浄開始） / washDone（洗浄終了） / unloadWasher（取り出し）
 //   pourStart / pourEnd（カリカリを注ぎ始め／終わり）
+//   returnTopping（トッピングを容器へ戻した） / trash（ゴミ箱に捨てた）
+//   returnBowl（未使用のどんぶりを置き場へ戻した）
+//   putOnBoard（まな板に食材を置いた） / chop（切った） / prepDone（下処理完了）
 // =============================================================
 
 const Sound = {

@@ -46,6 +46,11 @@ const Game = {
       selectedSlot: null,   // 選択中の作業台の番号（カリカリを注ぐ先）
       pouring: false,       // カリカリタンクを長押し中か
 
+      // トッピングの残量（例：{ carrot: 5, broccoli: 5, ... }）
+      stock: Object.fromEntries(toppingIds.map((id) => [id, CONFIG.stock.initial])),
+      // まな板。null なら空き、食材があれば { id: トッピングID, taps: 切った回数 }
+      board: null,
+
       sink: 0,              // 流しにある汚れたどんぶりの数
 
       // 食洗機。status は 'idle'（空）/ 'washing'（洗浄中）/ 'done'（洗い上がり）
@@ -235,11 +240,11 @@ const Game = {
     this.emit(on ? 'pourStart' : 'pourEnd');
   },
 
-  // トッピングを載せる
+  // トッピングを載せる（容器の残量が1減る）
   addTopping(slotIndex, toppingId) {
-    const bowl = this.state.slots[slotIndex];
-    if (!bowl || bowl.toppings.includes(toppingId)) return false;
-    bowl.toppings.push(toppingId);
+    if (!this.canAddTopping(slotIndex, toppingId)) return false;
+    this.state.slots[slotIndex].toppings.push(toppingId);
+    this.state.stock[toppingId]--;
     this.emit('topping', { slot: slotIndex });
     return true;
   },
@@ -247,7 +252,90 @@ const Game = {
   // そのトッピングを載せられるか（ドラッグ中に光らせる判定用）
   canAddTopping(slotIndex, toppingId) {
     const bowl = this.state.slots[slotIndex];
-    return !!bowl && !bowl.toppings.includes(toppingId);
+    return !!bowl && !bowl.toppings.includes(toppingId) && this.state.stock[toppingId] > 0;
+  },
+
+  // どんぶりのトッピングを容器へ戻す（残量が1増える。上限は超えない）
+  returnTopping(slotIndex, toppingId) {
+    const s = this.state;
+    if (!this.removeTopping(slotIndex, toppingId)) return false;
+    s.stock[toppingId] = Math.min(CONFIG.stock.max, s.stock[toppingId] + 1);
+    this.emit('returnTopping');
+    return true;
+  },
+
+  // どんぶりのトッピングを1つだけゴミ箱へ捨てる（残量は戻らない）
+  discardTopping(slotIndex, toppingId) {
+    if (!this.removeTopping(slotIndex, toppingId)) return false;
+    this.emit('trash');
+    return true;
+  },
+
+  // どんぶりからトッピングを取り除く（returnTopping と discardTopping の共通部分）
+  removeTopping(slotIndex, toppingId) {
+    const bowl = this.state.slots[slotIndex];
+    if (!bowl || !bowl.toppings.includes(toppingId)) return false;
+    bowl.toppings = bowl.toppings.filter((id) => id !== toppingId);
+    return true;
+  },
+
+  // 作業台のどんぶりをゴミ箱へ：中身を捨てて、どんぶりは流しへ
+  //   ・中身が空っぽ（まだ使っていない）なら、汚れていないので置き場へ戻す
+  //   ・流しが満杯なら、どんぶりは割れてトラブル（putToSink の中で判定）
+  trashBowl(slotIndex) {
+    const s = this.state;
+    const bowl = s.slots[slotIndex];
+    if (!bowl) return false;
+    s.slots[slotIndex] = null;
+    this.fixSelection();
+    if (bowl.kibble <= 0 && bowl.toppings.length === 0) {
+      s.cleanStack++;
+      this.emit('returnBowl');
+    } else {
+      this.emit('trash');
+      this.putToSink();
+    }
+    return true;
+  },
+
+  // ---------------------------------------------------------
+  // 下処理（冷蔵庫 → まな板 → タップで切る → 容器に補充）
+  // ---------------------------------------------------------
+
+  // 冷蔵庫の食材をまな板に置く（まな板は1つなので、空いているときだけ）
+  putOnBoard(toppingId) {
+    const s = this.state;
+    if (s.board || !s.toppingIds.includes(toppingId)) return false;
+    s.board = { id: toppingId, taps: 0 };
+    this.emit('putOnBoard');
+    return true;
+  },
+
+  // まな板をタップして切る。必要な回数に達したら容器に補充する
+  chop() {
+    const s = this.state;
+    if (!s.board) {
+      this.emit('hint', { text: '冷蔵庫から食材をまな板へ運んでね' });
+      return false;
+    }
+    s.board.taps++;
+    this.emit('chop');
+    if (s.board.taps >= CONFIG.stock.chopTaps) {
+      const id = s.board.id;
+      const before = s.stock[id];
+      s.stock[id] = Math.min(CONFIG.stock.max, before + CONFIG.stock.refill);
+      s.board = null;
+      this.emit('prepDone', { id, added: s.stock[id] - before });
+    }
+    return true;
+  },
+
+  // まな板の食材をゴミ箱へ捨てる（下処理の取り消し）
+  clearBoard() {
+    if (!this.state.board) return false;
+    this.state.board = null;
+    this.emit('trash');
+    return true;
   },
 
   // その席に提供できるか（注文を待っている客がいるか）

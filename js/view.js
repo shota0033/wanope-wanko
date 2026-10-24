@@ -96,23 +96,90 @@ const View = {
     // --- トッピング棚 ---
     els.shelf = this.buildZone('shelf', 'トッピング');
     const grid = makeEl('div', 'shelf-grid', els.shelf);
-    els.toppingCells = s.toppingIds.map((id) => {
+    els.toppingCells = {};
+    for (const id of s.toppingIds) {
       const t = toppingInfo(id);
       const cell = makeEl('div', 'topping-cell', grid);
       cell.innerHTML = `${Assets.icon('topping_' + id, t.icon, 'topping-icon')}<span class="topping-name">${t.name}</span>`;
+      const count = makeEl('span', 'stock-count', cell); // 残量の数字
       Input.register(cell, {
-        drag: () => ({ type: 'topping', id }),
+        drag: () => {
+          if (Game.state.stock[id] <= 0) {
+            Game.emit('hint', { text: `${t.name}が切れています。冷蔵庫から補充してね` });
+            return null;
+          }
+          return { type: 'topping', id };
+        },
         ghost: () => this.iconGhost(t),
       });
-      return cell;
+      els.toppingCells[id] = { cell, count };
+    }
+    // 棚全体が「どんぶりのトッピングを戻す場所」になる（どの容器の上に落としても、元の容器に戻る）
+    Input.register(els.shelf, {
+      drop: {
+        accepts: (p) => p.type === 'placedTopping',
+        onDrop: (p) => Game.returnTopping(p.slot, p.id),
+      },
     });
 
-    // --- フェーズ2で作る場所（今は置き場所だけ表示） ---
-    for (const [id, label] of [['trash', 'ゴミ箱'], ['board', 'まな板'], ['fridge', '冷蔵庫']]) {
-      const z = this.buildZone(id, label);
-      z.classList.add('zone-later');
-      makeEl('div', 'zone-hint', z).textContent = 'フェーズ2で追加';
+    // --- ゴミ箱 ---
+    els.trash = this.buildZone('trash', 'ゴミ箱');
+    els.trash.insertAdjacentHTML('beforeend', `
+      <div class="trash-icon">${Assets.icon('trash', '🗑️')}</div>
+      <div class="zone-hint">作り直しは<br>ここへ</div>
+    `);
+    Input.register(els.trash, {
+      drop: {
+        accepts: (p) => ['workBowl', 'placedTopping', 'boardItem'].includes(p.type),
+        onDrop: (p) => {
+          if (p.type === 'workBowl') Game.trashBowl(p.slot);
+          else if (p.type === 'placedTopping') Game.discardTopping(p.slot, p.id);
+          else if (p.type === 'boardItem') Game.clearBoard();
+        },
+      },
+    });
+
+    // --- まな板 ---
+    els.board = this.buildZone('board', 'まな板');
+    els.boardContent = makeEl('div', 'zone-content board-content', els.board);
+    els.boardBar = this.buildBar(els.board, 'board-bar');
+    Input.register(els.board, {
+      tap: () => Game.chop(),
+      // 置いた食材は、ゴミ箱へドラッグして取り消せる
+      drag: () => (Game.state.board ? { type: 'boardItem' } : null),
+      ghost: () => this.iconGhost(toppingInfo(Game.state.board.id), 'whole_'),
+      drop: {
+        accepts: (p) => p.type === 'ingredient' && !Game.state.board,
+        onDrop: (p) => {
+          if (Game.putOnBoard(p.id)) this.setFridgeOpen(false); // 置けたら冷蔵庫は自動で閉じる
+        },
+      },
+    });
+
+    // --- 冷蔵庫（タップすると、トッピング棚の上に食材の一覧が開く） ---
+    els.fridge = this.buildZone('fridge', '冷蔵庫');
+    els.fridge.insertAdjacentHTML('beforeend', `
+      <div class="fridge-icon">${Assets.icon('fridge', '🧊')}</div>
+      <div class="zone-hint fridge-hint">タップで<br>開く</div>
+    `);
+    Input.register(els.fridge, { tap: () => this.setFridgeOpen(!this.fridgeOpen) });
+
+    els.fridgePanel = makeEl('div', 'fridge-panel', root);
+    els.fridgePanel.innerHTML = '<div class="fridge-panel-title">冷蔵庫：食材をまな板へドラッグ</div>';
+    const closeBtn = makeEl('div', 'btn fridge-close', els.fridgePanel);
+    closeBtn.textContent = '閉じる';
+    Input.register(closeBtn, { tap: () => this.setFridgeOpen(false) });
+    const fridgeGrid = makeEl('div', 'shelf-grid', els.fridgePanel);
+    for (const id of s.toppingIds) {
+      const t = toppingInfo(id);
+      const cell = makeEl('div', 'topping-cell', fridgeGrid);
+      cell.innerHTML = `${Assets.icon('whole_' + id, t.icon, 'topping-icon')}<span class="topping-name">${t.name}</span>`;
+      Input.register(cell, {
+        drag: () => ({ type: 'ingredient', id }),
+        ghost: () => this.iconGhost(t, 'whole_'),
+      });
     }
+    this.setFridgeOpen(false);
 
     // --- 演出用の層（ふきだし文字・お知らせ） ---
     els.fx = makeEl('div', 'fx-layer', root);
@@ -151,8 +218,17 @@ const View = {
     const label = makeEl('div', 'slot-label', root);
 
     Input.register(root, {
-      drag: () => (Game.state.slots[i] ? { type: 'workBowl', slot: i } : null),
-      ghost: (p) => this.bowlGhost(Game.state.slots[p.slot]),
+      drag: (target) => {
+        if (!Game.state.slots[i]) return null;
+        // どんぶりの上のトッピングをつかんだら、そのトッピングだけを運ぶ
+        const toppingEl = target.closest('[data-topping]');
+        if (toppingEl) return { type: 'placedTopping', slot: i, id: toppingEl.dataset.topping };
+        // それ以外なら、どんぶりごと運ぶ
+        return { type: 'workBowl', slot: i };
+      },
+      ghost: (p) => (p.type === 'placedTopping'
+        ? this.iconGhost(toppingInfo(p.id))
+        : this.bowlGhost(Game.state.slots[p.slot])),
       tap: () => Game.selectSlot(i),
       drop: {
         accepts: (p) => {
@@ -236,6 +312,38 @@ const View = {
 
     // カリカリタンク（注いでいる間だけカリカリが落ちる）
     els.tank.classList.toggle('pouring', s.pouring && !!Game.selectedBowl());
+
+    // トッピングの残量
+    for (const id of s.toppingIds) {
+      const { cell, count } = els.toppingCells[id];
+      const n = s.stock[id];
+      setText(count, n);
+      cell.classList.toggle('empty', n <= 0);
+      cell.classList.toggle('low', n > 0 && n <= CONFIG.stock.lowWarning);
+    }
+
+    // まな板
+    const b = s.board;
+    if (b) {
+      const t = toppingInfo(b.id);
+      setHTML(els.boardContent,
+        `<div class="board-item">${Assets.icon('whole_' + b.id, t.icon)}</div>
+         <div class="zone-hint">タップで切る！</div>`);
+      els.boardBar.bar.style.display = '';
+      els.boardBar.fill.style.width = (b.taps / CONFIG.stock.chopTaps) * 100 + '%';
+    } else {
+      setHTML(els.boardContent, '<div class="zone-hint">冷蔵庫の食材を<br>ここへ</div>');
+      els.boardBar.bar.style.display = 'none';
+    }
+    els.board.classList.toggle('has-item', !!b);
+  },
+
+  // 冷蔵庫の一覧を開く・閉じる（開いている間はトッピング棚の上に重なる）
+  setFridgeOpen(open) {
+    this.fridgeOpen = open;
+    this.els.fridgePanel.style.display = open ? '' : 'none';
+    this.els.fridge.classList.toggle('open', open);
+    this.els.fridge.querySelector('.fridge-hint').innerHTML = open ? 'タップで<br>閉じる' : 'タップで<br>開く';
   },
 
   // 客席1つ分の表示更新
@@ -359,10 +467,10 @@ const View = {
     return g;
   },
 
-  // ドラッグ中の絵：トッピング
-  iconGhost(t) {
+  // ドラッグ中の絵：トッピング（prefix='whole_' なら丸ごとの食材の絵）
+  iconGhost(t, prefix = 'topping_') {
     const g = document.createElement('div');
-    g.innerHTML = Assets.icon('topping_' + t.id, t.icon, 'topping-icon');
+    g.innerHTML = Assets.icon(prefix + t.id, t.icon, 'topping-icon');
     return g;
   },
 
@@ -383,6 +491,15 @@ const View = {
         this.toast('流しがいっぱいで、どんぶりが割れた！');
         break;
       case 'washDone':       this.floatText(this.els.washer, '✨ 洗い上がり'); break;
+      case 'trash':          this.floatText(this.els.trash, 'ポイッ', 'small'); break;
+      case 'returnBowl':     this.floatText(this.els.stack, '置き場へ戻した', 'small'); break;
+      case 'chop':           this.els.board.classList.remove('chopping'); void this.els.board.offsetWidth; this.els.board.classList.add('chopping'); break;
+      case 'prepDone': {
+        const t = toppingInfo(ev.id);
+        const text = ev.added > 0 ? `✨ ${t.name} +${ev.added}` : `${t.name}は満タンでした`;
+        this.floatText(this.els.toppingCells[ev.id].cell, text, ev.added > 0 ? '' : 'small');
+        break;
+      }
       case 'hint':           this.toast(ev.text); break;
     }
   },

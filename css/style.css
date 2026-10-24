@@ -243,8 +243,6 @@ html, body {
 }
 .count { font-size: 22px; font-weight: bold; }
 .count.warn { color: #d43a2a; }
-/* まだ作っていない場所 */
-.zone-later { opacity: 0.45; border-style: dashed; }
 
 /* ドラッグ中、落とせる場所を光らせる */
 .drop-hover {
@@ -439,8 +437,82 @@ html, body {
   justify-content: center;
   cursor: grab;
 }
+.topping-cell { position: relative; }
 .topping-icon { font-size: 40px; line-height: 1; }
 .topping-name { font-size: 13px; margin-top: 2px; }
+
+/* 容器の残量（右上の数字） */
+.stock-count {
+  position: absolute;
+  right: 4px; top: 2px;
+  min-width: 26px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: #5a4030;
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+.topping-cell.low .stock-count { background: #e8901c; }
+.topping-cell.empty { background: #eee4d8; border-style: dashed; cursor: default; }
+.topping-cell.empty .topping-icon { filter: grayscale(1); opacity: 0.35; }
+.topping-cell.empty .stock-count { background: #d43a2a; }
+
+/* ---------- ゴミ箱 ---------- */
+.trash-icon { font-size: 54px; line-height: 1.2; }
+.zone-trash .zone-hint { text-align: center; }
+
+/* ---------- まな板 ---------- */
+.zone-board { background: #f5e6c8; }
+.zone-board.has-item { border-color: #e2742f; cursor: pointer; }
+.board-content { text-align: center; }
+.board-item { font-size: 60px; line-height: 1.1; }
+.board-bar { width: 110px; margin-top: 8px; }
+.board-bar .bar-fill { background: #e2742f; }
+/* タップするたびに、まな板が少し沈む */
+.zone-board.chopping { animation: chop 0.12s ease-out; }
+@keyframes chop {
+  50% { transform: translateY(4px) scale(0.98); }
+}
+
+/* ---------- 冷蔵庫 ---------- */
+.zone-fridge { background: #e8f3f8; border-color: #8fb3cc; cursor: pointer; }
+.zone-fridge.open { box-shadow: 0 0 0 4px #7cc0e8; }
+.fridge-icon { font-size: 54px; line-height: 1.2; }
+.zone-fridge .zone-hint { text-align: center; }
+
+/* 冷蔵庫を開いたときの食材一覧（トッピング棚と同じ位置に重ねる） */
+.fridge-panel {
+  position: absolute;
+  left: 310px; top: 494px;
+  width: 954px; height: 212px;
+  box-sizing: border-box;
+  padding: 48px 6px 8px;
+  border: 3px solid #5a9fcf;
+  border-radius: 14px;
+  background: #e8f3f8;
+  z-index: 500;
+}
+.fridge-panel-title {
+  position: absolute;
+  left: 12px; top: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #2f6e9a;
+}
+.fridge-close {
+  position: absolute;
+  right: 8px; top: 4px;
+  min-height: 40px;
+  padding: 0 22px;
+  font-size: 18px;
+  background: #5a9fcf;
+  box-shadow: 0 4px 0 #3a7aa8;
+}
+.fridge-panel .shelf-grid { grid-auto-rows: 72px; }
+.fridge-panel .topping-cell { border-color: #a9cde4; }
 
 /* ---------- ドラッグ中に指についてくる絵 ---------- */
 .ghost {
