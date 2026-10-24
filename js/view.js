@@ -104,15 +104,37 @@ const View = {
 
     // --- カリカリタンク ---
     els.tank = this.buildZone('tank', 'カリカリ');
+    // タンクの本体：中のカリカリの量をゲージ（茶色の高さ）と数字で見せる
     els.tank.insertAdjacentHTML('beforeend', `
-      <div class="tank-body">${Assets.icon('tank', '🦴', 'tank-icon')}</div>
+      <div class="tank-body">
+        <div class="tank-fill"></div>
+        <div class="tank-count"></div>
+        <div class="tank-hint">長押しで注ぐ</div>
+      </div>
       <div class="tank-nozzle"></div>
       <div class="tank-stream"></div>
-      <div class="zone-hint">長押しで注ぐ</div>
     `);
+    els.tankFill = els.tank.querySelector('.tank-fill');
+    els.tankCount = els.tank.querySelector('.tank-count');
     Input.register(els.tank, {
       holdStart: () => Game.setPouring(true),
       holdEnd: () => Game.setPouring(false),
+      // カリカリの袋を落とすと補充
+      drop: {
+        accepts: (p) => p.type === 'kibbleBag',
+        onDrop: () => Game.refillKibbleTank(),
+      },
+    });
+    // カリカリの袋（いくらでもある）。タンクの上へドラッグして補充する
+    els.kibbleBag = makeEl('div', 'kibble-bag', els.tank);
+    els.kibbleBag.innerHTML = `${Assets.icon('kibble_bag', '🛍️')}<span class="bag-label">袋を<br>タンクへ</span>`;
+    Input.register(els.kibbleBag, {
+      drag: () => ({ type: 'kibbleBag' }),
+      ghost: () => {
+        const g = document.createElement('div');
+        g.innerHTML = Assets.icon('kibble_bag', '🛍️', 'topping-icon');
+        return g;
+      },
     });
 
     // --- トッピング棚 ---
@@ -384,7 +406,13 @@ const View = {
        <div class="count">× ${s.cleanStack}</div>`);
 
     // カリカリタンク（注いでいる間だけカリカリが落ちる）
-    els.tank.classList.toggle('pouring', s.pouring && !!Game.selectedBowl());
+    els.tank.classList.toggle('pouring', s.pouring && !!Game.selectedBowl() && s.kibbleTank > 0);
+    // タンクの残り（表示は整数に切り上げ。0.3単位残っていても「1」と見せて、0は本当に空のときだけ）
+    const tank = CONFIG.kibbleTank;
+    els.tankFill.style.height = (s.kibbleTank / tank.capacity) * 100 + '%';
+    setText(els.tankCount, `${Math.ceil(s.kibbleTank)}/${tank.capacity}`);
+    els.tank.classList.toggle('tank-low', s.kibbleTank > 0 && s.kibbleTank <= tank.lowWarning);
+    els.tank.classList.toggle('tank-empty', s.kibbleTank <= 0);
 
     // トッピングの残量
     for (const id of s.toppingIds) {
@@ -608,6 +636,7 @@ const View = {
       case 'trash':          this.floatText(this.els.trash, 'ポイッ', 'small'); break;
       case 'overcooked':     this.floatText(this.els.pots[ev.pot].root, '💦 煮すぎた！', 'bad'); break;
       case 'potDiscard':     this.floatText(this.els.pots[ev.pot].root, '食材を捨てた', 'small'); break;
+      case 'kibbleRefill':   this.floatText(this.els.tank, `カリカリ +${Math.round(ev.added)}`); break;
       case 'potLit':         this.floatText(this.els.pots[ev.pot].root, '🔥 点火！', 'small'); break;
       case 'returnBowl':     this.floatText(this.els.stack, '置き場へ戻した', 'small'); break;
       case 'chop':           this.restartAnimation(this.els.board, 'chopping'); break;

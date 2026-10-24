@@ -15,7 +15,7 @@ const Assets = {
 
   // 差し替えられる画像の名前の一覧を作る
   keys() {
-    const keys = ['player', 'player_sad', 'senpai', 'tank', 'trash', 'fridge', 'bg_title', 'bg_play'];
+    const keys = ['player', 'player_sad', 'senpai', 'kibble_bag', 'trash', 'fridge', 'bg_title', 'bg_play'];
     CONFIG.customerDogs.forEach((_, i) => keys.push('customer' + (i + 1)));
     for (const t of CONFIG.toppings) {
       keys.push('topping_' + t.id); // 下処理済み（トッピング棚・どんぶりの上）

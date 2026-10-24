@@ -45,6 +45,7 @@ const Game = {
       slots: Array(diff.workbenchSlots).fill(null),
       selectedSlot: null,   // 選択中の作業台の番号（カリカリを注ぐ先）
       pouring: false,       // カリカリタンクを長押し中か
+      kibbleTank: CONFIG.kibbleTank.initial, // カリカリタンクの残り（単位）
 
       // トッピングの残量（例：{ carrot: 5, broccoli: 5, ... }）
       stock: Object.fromEntries(toppingIds.map((id) => [id, CONFIG.stock.initial])),
@@ -91,10 +92,21 @@ const Game = {
     }
 
     // --- カリカリを注ぐ（プレイヤーの操作なので「現実の時間」で増やす） ---
+    //     注いだ量に応じてタンクが減り、空になったら止まる
     if (s.pouring) {
       const bowl = this.selectedBowl();
-      if (bowl) {
-        bowl.kibble = Math.min(CONFIG.kibble.bowlMax, bowl.kibble + CONFIG.kibble.pourPerSecond * realDt);
+      if (bowl && s.kibbleTank > 0) {
+        const k = CONFIG.kibble;
+        const add = Math.min(
+          k.pourPerSecond * realDt,       // 今回のフレームで注げる量
+          k.bowlMax - bowl.kibble,        // どんぶりに入る残り
+          s.kibbleTank * k.amountPerUnit  // タンクに残っている量
+        );
+        bowl.kibble += add;
+        s.kibbleTank = Math.max(0, s.kibbleTank - add / k.amountPerUnit);
+        if (s.kibbleTank <= 0) {
+          this.emit('hint', { text: 'カリカリが切れた！袋をタンクへドラッグして補充してね' });
+        }
       }
     }
 
@@ -262,9 +274,25 @@ const Game = {
     const s = this.state;
     if (on && !this.selectedBowl()) {
       this.emit('hint', { text: '先に作業台にどんぶりを置いてね' });
+    } else if (on && s.kibbleTank <= 0) {
+      this.emit('hint', { text: 'カリカリが空です。袋をタンクへドラッグして補充してね' });
     }
     s.pouring = on;
     this.emit(on ? 'pourStart' : 'pourEnd');
+  },
+
+  // カリカリの袋をタンクへ：補充する（上限を超えた分は入らない）
+  refillKibbleTank() {
+    const s = this.state;
+    const t = CONFIG.kibbleTank;
+    if (s.kibbleTank >= t.capacity) {
+      this.emit('hint', { text: 'タンクはいっぱいです' });
+      return false;
+    }
+    const before = s.kibbleTank;
+    s.kibbleTank = Math.min(t.capacity, s.kibbleTank + t.refill);
+    this.emit('kibbleRefill', { added: s.kibbleTank - before });
+    return true;
   },
 
   // トッピングを載せる（容器の残量が1減る）

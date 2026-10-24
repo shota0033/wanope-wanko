@@ -550,18 +550,59 @@ html, body {
 
 /* ---------- カリカリタンク ---------- */
 .tank-body {
-  width: 90px; height: 84px;
+  position: relative;
+  width: 100px; height: 78px;
+  box-sizing: border-box;
   border-radius: 12px 12px 6px 6px;
-  background: #c98b4e;
+  background: #f6ead8;
   border: 3px solid #8a5a2e;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+/* タンクの中のカリカリ（高さで残りの量を表す） */
+.tank-fill {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(circle at 25% 30%, #7a4a1f 3px, transparent 4px) 0 0 / 14px 12px,
+    #c98b4e;
+}
+.tank-count {
+  position: relative;
+  font-size: 22px;
+  font-weight: bold;
+  color: #3a2414;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+}
+.tank-hint { position: relative; font-size: 12px; font-weight: bold; color: #3a2414; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
+.zone-tank.tank-low .tank-count { color: #d06a10; }
+.zone-tank.tank-empty .tank-count { color: #d43a2a; }
+.zone-tank.tank-empty .tank-body { border-color: #d43a2a; animation: blink 0.8s ease-in-out infinite alternate; }
+@keyframes blink {
+  to { background: #ffd9d2; }
+}
+.tank-nozzle { width: 24px; height: 12px; background: #8a5a2e; border-radius: 0 0 6px 6px; }
+/* カリカリの袋（タンクへドラッグして補充） */
+.kibble-bag {
+  margin-top: auto;
+  width: 110px; height: 52px;
+  box-sizing: border-box;
+  border: 2px dashed #b88a5e;
+  border-radius: 10px;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44px;
+  gap: 4px;
+  font-size: 28px;
+  cursor: grab;
 }
-.tank-nozzle { width: 24px; height: 16px; background: #8a5a2e; border-radius: 0 0 6px 6px; }
+.kibble-bag .bag-label { font-size: 12px; font-weight: bold; color: #8a5a3a; line-height: 1.2; }
 .tank-stream {
-  width: 12px; height: 36px;
+  width: 12px; height: 26px;
   visibility: hidden;
   background: repeating-linear-gradient(#a86b32 0 6px, transparent 6px 10px);
   animation: stream 0.2s linear infinite;
