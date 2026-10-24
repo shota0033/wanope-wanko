@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- スマホで勝手に拡大・縮小されないようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>ワンオペわんこ亭</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- ゲーム領域（1280×720 で作り、main.js でウィンドウに合わせて拡大縮小する） -->
+  <div id="stage">
+
+    <!-- タイトル画面 -->
+    <div id="scene-title" class="scene">
+      <div class="title-dog">🐕🍚</div>
+      <h1 class="title-name"></h1>
+      <p class="title-sub">先輩が来るまで、ワンオペでお店を回そう！</p>
+      <button class="btn btn-start">あそぶ（試作版）</button>
+    </div>
+
+    <!-- プレイ画面（中身は view.js が作る） -->
+    <div id="scene-play" class="scene"></div>
+
+  </div>
+
+  <!-- スマホを縦向きにしているときのお知らせ -->
+  <div id="rotate-notice">
+    <div>📱↻</div>
+    <div>スマホを横向きにして遊んでね</div>
+  </div>
+
+  <!-- 読み込む順番が大事：設定 → 小道具 → 本体 → 起動 -->
+  <script src="js/config.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/view.js"></script>
+  <script src="js/scenes.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

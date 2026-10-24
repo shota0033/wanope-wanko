@@ -1,0 +1,508 @@
+/* =============================================================
+   style.css … 見た目の設定
+   位置や大きさは、すべてゲーム領域（1280×720）の座標で書いています。
+   ============================================================= */
+
+/* ---------- ページ全体 ---------- */
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #3b2a1e;
+  /* スマホでのスクロール・拡大・長押しメニュー・文字選択を止める */
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: "Hiragino Maru Gothic ProN", "BIZ UDPGothic", "Meiryo", sans-serif;
+}
+
+/* ---------- ゲーム領域 ---------- */
+#stage {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform-origin: center center;
+  overflow: hidden;
+  background: #f3e3c8;
+  color: #4a3020;
+}
+
+/* シーン（画面）は、active が付いているものだけ表示する */
+.scene {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+.scene.active {
+  display: block;
+}
+
+/* ---------- ボタン ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 12px;
+  background: #e2742f;
+  color: #fff;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: bold;
+  box-shadow: 0 4px 0 #a64e18;
+  cursor: pointer;
+}
+.btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #a64e18;
+}
+.btn.disabled {
+  background: #b9aa98;
+  box-shadow: 0 4px 0 #8e8170;
+}
+
+/* ---------- タイトル画面 ---------- */
+#scene-title {
+  text-align: center;
+  background: linear-gradient(#fbe9cf, #f0cf9f);
+}
+#scene-title.active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.title-dog { font-size: 110px; }
+.title-name { margin: 10px 0; font-size: 72px; color: #7a3f1a; }
+.title-sub { margin: 0 0 40px; font-size: 26px; }
+.btn-start { min-height: 80px; padding: 0 60px; font-size: 32px; }
+
+/* ---------- プレイ画面：上部のバー ---------- */
+.topbar {
+  position: absolute;
+  left: 0; top: 0;
+  width: 1280px; height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  background: #7a4a2a;
+  color: #fff;
+  font-size: 18px;
+}
+.topbar-title { font-weight: bold; font-size: 20px; }
+.topbar-note { font-size: 14px; background: #a8693d; padding: 2px 10px; border-radius: 10px; }
+.topbar-stat b { font-size: 22px; }
+
+/* ---------- 客席 ---------- */
+.seat-area {
+  position: absolute;
+  left: 16px; top: 48px;
+  width: 1248px; height: 206px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.seat {
+  position: relative;
+  height: 206px;
+  border-radius: 12px;
+}
+/* 片付けが必要な席はうっすら赤く */
+.seat.needs-clear { background: rgba(230, 90, 60, 0.12); }
+
+/* 注文の吹き出し */
+.bubble {
+  position: absolute;
+  left: 4px; right: 4px; top: 0;
+  height: 92px;
+  background: #fff;
+  border: 3px solid #5a4030;
+  border-radius: 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px 6px;
+  overflow: hidden;
+}
+.bubble .bar { flex: none; }
+.bubble::after { /* 吹き出しのしっぽ */
+  content: "";
+  position: absolute;
+  left: 50%; bottom: -12px;
+  margin-left: -9px;
+  border: 9px solid transparent;
+  border-top-color: #5a4030;
+  border-bottom: 0;
+}
+.order {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.order-toppings {
+  display: flex;
+  gap: 2px;
+  font-size: 26px;
+  line-height: 1;
+}
+/* トッピングが3つ以上のときは 2列×2段 */
+.order-toppings.two-cols {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+}
+.size-badge {
+  flex: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 20px;
+}
+.size-small  { background: #4f9fd8; }
+.size-medium { background: #49a35a; }
+.size-large  { background: #d8534f; }
+
+/* 犬 */
+.dog {
+  position: absolute;
+  left: 0; right: 0; top: 98px;
+  text-align: center;
+  font-size: 52px;
+  line-height: 1;
+}
+.dog.eating { animation: munch 0.5s ease-in-out infinite alternate; }
+@keyframes munch {
+  from { transform: translateY(0); }
+  to   { transform: translateY(6px); }
+}
+
+/* テーブル */
+.table {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 46px;
+  background: #a0673a;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* カウンター（飾り） */
+.counter {
+  position: absolute;
+  left: 0; top: 258px;
+  width: 1280px; height: 12px;
+  background: #6e4226;
+}
+
+/* ---------- 枠（流し・食洗機など） ---------- */
+.zone {
+  position: absolute;
+  box-sizing: border-box;
+  border: 3px solid #c9a27a;
+  border-radius: 14px;
+  background: #fff8ec;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 26px 6px 8px;
+}
+.zone-label {
+  position: absolute;
+  left: 10px; top: 4px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #8a5a3a;
+}
+.zone-hint {
+  font-size: 14px;
+  color: #8a6a50;
+}
+.zone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.count { font-size: 22px; font-weight: bold; }
+.count.warn { color: #d43a2a; }
+/* まだ作っていない場所 */
+.zone-later { opacity: 0.45; border-style: dashed; }
+
+/* ドラッグ中、落とせる場所を光らせる */
+.drop-hover {
+  border-color: #ffb800 !important;
+  box-shadow: 0 0 0 4px #ffd84a, 0 0 18px #ffd84a;
+}
+/* ドラッグ中の元の場所は少し薄く */
+.drag-source { opacity: 0.6; }
+
+/* 上の段（y=278〜482） */
+.zone-sink   { left: 16px;   top: 278px; width: 150px; height: 204px; background: #e3eef5; border-color: #8fb3cc; }
+.zone-washer { left: 176px;  top: 278px; width: 178px; height: 204px; background: #eef0f2; border-color: #9aa3ad; justify-content: space-between; }
+.slot-area   { position: absolute; left: 368px; top: 278px; width: 474px; height: 204px; display: flex; justify-content: center; gap: 12px; }
+.zone-tank   { left: 856px;  top: 278px; width: 130px; height: 204px; justify-content: flex-start; }
+.zone-board  { left: 1000px; top: 278px; width: 140px; height: 204px; }
+.zone-fridge { left: 1154px; top: 278px; width: 110px; height: 204px; }
+
+/* 下の段（y=494〜706） */
+.zone-stack  { left: 16px;   top: 494px; width: 150px; height: 212px; }
+.zone-trash  { left: 176px;  top: 494px; width: 120px; height: 212px; }
+.zone-shelf  { left: 310px;  top: 494px; width: 954px; height: 212px; justify-content: flex-start; }
+
+/* ---------- 小さなどんぶり（席・流し・置き場などで使う） ---------- */
+.mini-bowl {
+  width: 50px; height: 24px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 3px solid #3b6ea5;
+  border-top-width: 4px;
+  border-radius: 0 0 25px 25px;
+}
+.mini-bowl.dirty    { background: radial-gradient(circle at 30% 40%, #b98f5e 3px, transparent 4px), radial-gradient(circle at 70% 55%, #b98f5e 3px, transparent 4px), #e6dac4; }
+.mini-bowl.leftover { background: linear-gradient(#a86b32 45%, #e6dac4 45%); }
+.mini-bowl.food     { background: linear-gradient(#a86b32 70%, #fff 70%); }
+
+/* 小さなどんぶりを積み重ねて見せる */
+.bowl-pile {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  min-height: 30px;
+}
+.bowl-pile .mini-bowl + .mini-bowl { margin-bottom: -16px; }
+
+/* ---------- 食洗機 ---------- */
+.washer-status { font-size: 17px; font-weight: bold; text-align: center; }
+.washer-status.done { color: #2a8a3a; }
+.zone-washer.is-done { box-shadow: 0 0 0 3px #7ccf8a inset; cursor: pointer; }
+.washer-bar { width: 150px; }
+.washer-btn { min-height: 64px; width: 150px; padding: 0; font-size: 20px; background: #3b8ed0; box-shadow: 0 4px 0 #24649a; }
+
+/* ---------- 進行バー ---------- */
+.bar {
+  height: 10px;
+  background: #ddd;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  width: 0;
+  background: #4caf50;
+}
+.bar-fill.low { background: #e5533d; }
+
+/* ---------- 作業台 ---------- */
+.slot {
+  position: relative;
+  width: 150px; height: 204px;
+  box-sizing: border-box;
+  border: 3px solid #b88a5e;
+  border-radius: 14px;
+  background: #e9d3b0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+}
+.slot.selected {
+  border-color: #ffb800;
+  box-shadow: 0 0 0 4px #ffd84a;
+}
+.slot.selected::before { /* 「選択中」の札 */
+  content: "選択中";
+  position: absolute;
+  top: -12px; left: 50%;
+  transform: translateX(-50%);
+  background: #ffb800;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 1px 10px;
+  border-radius: 10px;
+}
+.slot-content { display: flex; align-items: flex-end; justify-content: center; flex: 1; }
+.slot-empty { color: #a7845f; font-size: 16px; text-align: center; padding-bottom: 50px; }
+.slot-label { height: 24px; font-size: 18px; font-weight: bold; }
+.slot-label.warn { color: #d43a2a; }
+
+/* 大きなどんぶり（目安線つき） */
+.bowl { display: flex; flex-direction: column; align-items: center; }
+.bowl-toppings {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 130px;
+  min-height: 28px;
+  font-size: 26px;
+  line-height: 1;
+}
+.bowl-body {
+  position: relative;
+  width: 124px; height: 100px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 4px solid #3b6ea5;
+  border-top-width: 7px;
+  border-radius: 0 0 62px 62px;
+}
+/* どんぶりの内側（丸い形からカリカリがはみ出さないよう切り取る） */
+.bowl-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 0 0 58px 58px;
+  overflow: hidden;
+}
+.bowl-body.over { border-color: #d43a2a; }
+.kibble {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(circle at 25% 30%, #7a4a1f 3px, transparent 4px) 0 0 / 14px 12px,
+    #a86b32;
+}
+.kibble-line {
+  position: absolute;
+  left: 0; right: 0;
+  border-top: 2px dashed rgba(220, 50, 40, 0.8);
+}
+/* 目安線の名前（どんぶりの右外側に、線と同じ高さで表示） */
+.kibble-line-label {
+  position: absolute;
+  right: -20px;
+  margin-bottom: -8px;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 16px;
+  color: #c0392b;
+}
+
+/* ---------- カリカリタンク ---------- */
+.tank-body {
+  width: 90px; height: 84px;
+  border-radius: 12px 12px 6px 6px;
+  background: #c98b4e;
+  border: 3px solid #8a5a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+}
+.tank-nozzle { width: 24px; height: 16px; background: #8a5a2e; border-radius: 0 0 6px 6px; }
+.tank-stream {
+  width: 12px; height: 36px;
+  visibility: hidden;
+  background: repeating-linear-gradient(#a86b32 0 6px, transparent 6px 10px);
+  animation: stream 0.2s linear infinite;
+}
+.zone-tank.pouring .tank-stream { visibility: visible; }
+.zone-tank.holding { background: #ffeccc; }
+@keyframes stream {
+  from { background-position: 0 0; }
+  to   { background-position: 0 10px; }
+}
+
+/* ---------- トッピング棚 ---------- */
+.shelf-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-auto-rows: 82px;
+  gap: 8px;
+}
+.topping-cell {
+  border: 3px solid #d8b78e;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+.topping-icon { font-size: 40px; line-height: 1; }
+.topping-name { font-size: 13px; margin-top: 2px; }
+
+/* ---------- ドラッグ中に指についてくる絵 ---------- */
+.ghost {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;  /* これがないと、落とす場所の判定をゴーストがじゃまする */
+  transform: translate(-50%, -50%) scale(1.05);
+  opacity: 0.9;
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.3));
+}
+.ghost-mini { transform: translate(-50%, -50%) scale(1.5); }
+
+/* ---------- 演出 ---------- */
+.fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 900; }
+.float-text {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-size: 24px;
+  font-weight: bold;
+  color: #2a7a3a;
+  text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
+  animation: floatUp 1.5s ease-out forwards;
+}
+.float-text.small { font-size: 18px; color: #5a4030; }
+.float-text.bad { color: #d43a2a; font-size: 26px; }
+@keyframes floatUp {
+  from { opacity: 1; margin-top: 0; }
+  to   { opacity: 0; margin-top: -50px; }
+}
+.toast {
+  position: absolute;
+  left: 50%; top: 300px;
+  transform: translateX(-50%);
+  background: rgba(40, 25, 15, 0.85);
+  color: #fff;
+  font-size: 22px;
+  padding: 10px 24px;
+  border-radius: 24px;
+  white-space: nowrap;
+  animation: toastFade 2s forwards;
+}
+@keyframes toastFade {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- 縦向きのスマホへのお知らせ ---------- */
+#rotate-notice {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #3b2a1e;
+  color: #fff;
+  font-size: 24px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+@media (orientation: portrait) and (pointer: coarse) {
+  #rotate-notice { display: flex; }
+}
