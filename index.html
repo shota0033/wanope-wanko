@@ -5,6 +5,17 @@
   <!-- スマホで勝手に拡大・縮小されないようにする -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>ワンオペわんこ亭</title>
+
+  <!-- ホーム画面に追加したとき、アプリのように全画面で起動するための設定 -->
+  <link rel="manifest" href="manifest.webmanifest">           <!-- Android など -->
+  <meta name="apple-mobile-web-app-capable" content="yes">    <!-- iPhone：アドレスバーなしで起動 -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="わんこ亭"> <!-- ホーム画面に出る名前 -->
+  <meta name="theme-color" content="#7a4a2a">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"> <!-- iPhoneのホーム画面のアイコン -->
+
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>

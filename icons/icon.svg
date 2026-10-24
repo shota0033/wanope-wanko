@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- アプリのアイコン：どんぶりからのぞく犬（ワンオペわんこ亭） -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbe9cf"/>
+      <stop offset="1" stop-color="#f0c48a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- 犬の耳 -->
+  <ellipse cx="148" cy="210" rx="52" ry="92" transform="rotate(18 148 210)" fill="#8a5a3a"/>
+  <ellipse cx="364" cy="210" rx="52" ry="92" transform="rotate(-18 364 210)" fill="#8a5a3a"/>
+  <!-- 犬の顔 -->
+  <ellipse cx="256" cy="230" rx="120" ry="112" fill="#e8b27a"/>
+  <!-- 口のまわり -->
+  <ellipse cx="256" cy="282" rx="66" ry="48" fill="#fbe3c4"/>
+  <!-- 目 -->
+  <circle cx="210" cy="215" r="15" fill="#3a2414"/>
+  <circle cx="302" cy="215" r="15" fill="#3a2414"/>
+  <circle cx="215" cy="210" r="5" fill="#fff"/>
+  <circle cx="307" cy="210" r="5" fill="#fff"/>
+  <!-- 鼻 -->
+  <ellipse cx="256" cy="262" rx="20" ry="14" fill="#3a2414"/>
+  <!-- 舌 -->
+  <path d="M244 290 q12 30 24 0 z" fill="#e2566a"/>
+
+  <!-- どんぶり -->
+  <path d="M88 318 h336 q-10 120 -168 126 q-158 -6 -168 -126 z" fill="#ffffff" stroke="#3b6ea5" stroke-width="16" stroke-linejoin="round"/>
+  <!-- カリカリ -->
+  <path d="M104 318 q152 -36 304 0 z" fill="#a86b32"/>
+  <circle cx="170" cy="310" r="10" fill="#7a4a1f"/>
+  <circle cx="230" cy="303" r="10" fill="#7a4a1f"/>
+  <circle cx="292" cy="303" r="10" fill="#7a4a1f"/>
+  <circle cx="350" cy="310" r="10" fill="#7a4a1f"/>
+  <!-- どんぶりの模様 -->
+  <path d="M150 372 h212" stroke="#3b6ea5" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
+</svg>
