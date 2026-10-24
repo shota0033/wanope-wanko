@@ -142,6 +142,7 @@ const CONFIG = {
     late: '提供遅れ',
     wrong: '提供間違い',
     broken: 'どんぶりを割った',
+    queue: '行列の客が帰った',
   },
 
   // ---------------------------------------------------------
@@ -179,7 +180,7 @@ const CONFIG = {
       eatTime: [2 * 60, 3 * 60],   // 客が食べている時間
       customerInterval: [60, 100], // 次の客が来るまでの間隔
       firstCustomerDelay: 6,       // ゲーム開始から最初の客が来るまで
-      seatRefillDelay: 10,         // 満席だったとき、席が空いてから次の客が来るまでの最短時間
+      queuePatience: 120,          // 満席のとき、裏の行列で待てる時間（実時間40秒）。過ぎると帰ってトラブル
     },
     normal: {
       name: 'ふつう',
@@ -196,7 +197,7 @@ const CONFIG = {
       eatTime: [2 * 60, 3 * 60],
       customerInterval: [40, 75],
       firstCustomerDelay: 6,
-      seatRefillDelay: 10,
+      queuePatience: 90,
     },
     hard: {
       name: 'むずかしい',
@@ -213,7 +214,7 @@ const CONFIG = {
       eatTime: [2 * 60, 3 * 60],
       customerInterval: [25, 50],
       firstCustomerDelay: 6,
-      seatRefillDelay: 8,
+      queuePatience: 75,
     },
   },
 };

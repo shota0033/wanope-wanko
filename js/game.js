@@ -66,6 +66,8 @@ const Game = {
       washer: { status: 'idle', count: 0, timeLeft: 0 },
 
       nextCustomerIn: diff.firstCustomerDelay, // 次の客が来るまでの残り時間
+      // 満席のときに並んでいる客（画面には出さない）。それぞれ { waitLeft: 残りの待てる時間 }
+      queue: [],
       served: 0,            // 正しく提供した数
       troubles: [],         // 起きたトラブルの記録 { kind, time }
       ended: null,          // ゲームが終わったら 'clear'（クリア）か 'over'（ゲームオーバー）
@@ -154,19 +156,30 @@ const Game = {
       }
     });
 
-    // --- 新しい客 ---
+    // --- 新しい客：満席でも一定間隔で来て、まず裏の行列（画面には出ない）に並ぶ ---
     s.nextCustomerIn -= dt;
     if (s.nextCustomerIn <= 0) {
+      s.queue.push({ waitLeft: s.diff.queuePatience });
+      s.nextCustomerIn = randomRange(s.diff.customerInterval);
+    }
+
+    // --- 行列の先頭から、空いている席に座らせる ---
+    while (s.queue.length > 0) {
       const emptySeats = s.seats
         .map((seat, i) => (seat.status === 'empty' ? i : -1))
         .filter((i) => i >= 0);
-      if (emptySeats.length > 0) {
-        this.spawnCustomer(randomPick(emptySeats));
-        s.nextCustomerIn = randomRange(s.diff.customerInterval);
-      } else {
-        // 満席なら、少し待ってからもう一度確かめる
-        s.nextCustomerIn = s.diff.seatRefillDelay;
-      }
+      if (emptySeats.length === 0) break;
+      s.queue.shift();
+      this.spawnCustomer(randomPick(emptySeats));
+    }
+
+    // --- 行列で待ちきれなかった客は帰る（トラブル） ---
+    for (const q of s.queue) q.waitLeft -= dt;
+    const gaveUp = s.queue.filter((q) => q.waitLeft <= 0).length;
+    s.queue = s.queue.filter((q) => q.waitLeft > 0);
+    for (let i = 0; i < gaveUp; i++) {
+      this.emit('queueLeft');
+      this.addTrouble('queue');
     }
   },
 
