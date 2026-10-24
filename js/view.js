@@ -25,12 +25,21 @@ const View = {
     // --- 上部のバー ---
     els.topbar = makeEl('div', 'topbar', root);
     els.topbar.innerHTML = `
-      <span class="topbar-title">${CONFIG.title}</span>
       <span class="topbar-note">${s.diff.name}</span>
+      <span class="hud-label">先輩が来るまで</span>
+      <div class="progress">
+        <div class="progress-fill"></div>
+        <span class="progress-senpai">${Assets.icon('senpai', '🐕')}</span>
+        <span class="progress-goal">🏠</span>
+      </div>
+      <span class="hud-label">ライフ</span>
+      <span class="hud-lives"></span>
       <span class="topbar-stat">提供 <b data-stat="served">0</b></span>
-      <span class="topbar-stat">トラブル <b data-stat="troubles">0</b></span>
-      <span class="topbar-stat">どんぶり総数 <b data-stat="bowls">0</b></span>
+      <span class="topbar-stat">どんぶり <b data-stat="bowls">0</b></span>
     `;
+    els.progressFill = els.topbar.querySelector('.progress-fill');
+    els.progressSenpai = els.topbar.querySelector('.progress-senpai');
+    els.lives = els.topbar.querySelector('.hud-lives');
 
     // --- 客席 ---
     els.seatArea = makeEl('div', 'seat-area', root);
@@ -306,9 +315,15 @@ const View = {
       this.handleEvent(Game.events.shift());
     }
 
-    // 上部のバー
+    // 上部のバー：先輩が来るまでの進み具合（先輩のアイコンが右のお店へ近づいていく）
+    const progress = Math.min(1, s.time / s.diff.duration);
+    els.progressFill.style.width = progress * 100 + '%';
+    els.progressSenpai.style.left = progress * 100 + '%';
+    // ライフ：残りは ❤️、トラブルで減った分は 💔
+    const allowed = Game.troublesAllowed();
+    const left = Math.max(0, allowed - s.troubles.length);
+    setHTML(els.lives, '❤️'.repeat(left) + '💔'.repeat(allowed - left));
     setText(els.topbar.querySelector('[data-stat="served"]'), s.served);
-    setText(els.topbar.querySelector('[data-stat="troubles"]'), s.troubles.length);
     setText(els.topbar.querySelector('[data-stat="bowls"]'), s.totalBowls);
 
     s.seats.forEach((_, i) => this.renderSeat(i));
@@ -404,7 +419,7 @@ const View = {
 
     // 中身が変わったときだけ HTML を書き換える（毎フレーム書き換えると重いため）
     const c = seat.customer;
-    const key = [seat.status, seat.dirtyType, c ? c.dog : '', c ? c.order.size : '', c ? c.order.toppings.join(',') : ''].join('|');
+    const key = [seat.status, seat.dirtyType, c ? c.dogIndex : '', c ? c.order.size : '', c ? c.order.toppings.join(',') : ''].join('|');
     if (e.key !== key) {
       e.key = key;
       // 注文の吹き出し
@@ -417,7 +432,7 @@ const View = {
       }
       e.bubble.style.visibility = seat.status === 'waiting' ? 'visible' : 'hidden';
       // 犬
-      e.dog.innerHTML = c ? Assets.icon('customer', c.dog) : '';
+      e.dog.innerHTML = c ? Assets.icon('customer' + (c.dogIndex + 1), CONFIG.customerDogs[c.dogIndex]) : '';
       e.dog.classList.toggle('eating', seat.status === 'eating');
       // テーブルの上のどんぶり
       if (seat.status === 'eating') e.tableBowl.innerHTML = this.miniBowls('food', 1);
@@ -537,10 +552,15 @@ const View = {
       case 'serveNg':        this.floatText(seatEl, '💢 注文とちがう！', 'bad'); break;
       case 'customerAngry':  this.floatText(seatEl, '💢 おそい！', 'bad'); break;
       case 'customerFinish': this.floatText(seatEl, 'ごちそうさま！', 'small'); break;
-      case 'bowlBroken':
-        this.floatText(this.els.sink, '💥 パリーン！', 'bad');
-        this.toast('流しがいっぱいで、どんぶりが割れた！');
+      case 'bowlBroken':     this.floatText(this.els.sink, '💥 パリーン！', 'bad'); break;
+      case 'trouble':
+        this.toast('トラブル：' + CONFIG.troubleNames[ev.kind]);
+        // ライフ表示を一瞬ゆらす
+        this.els.lives.classList.remove('shake');
+        void this.els.lives.offsetWidth; // アニメーションをやり直すためのおまじない
+        this.els.lives.classList.add('shake');
         break;
+      case 'gameEnd':        this.showEnd(ev.kind); break;
       case 'washDone':       this.floatText(this.els.washer, '✨ 洗い上がり'); break;
       case 'trash':          this.floatText(this.els.trash, 'ポイッ', 'small'); break;
       case 'overcooked':     this.floatText(this.els.pots[ev.pot].root, '💦 煮すぎた！', 'bad'); break;
@@ -555,6 +575,27 @@ const View = {
       }
       case 'hint':           this.toast(ev.text); break;
     }
+  },
+
+  // ゲーム終了の演出（クリアなら先輩が到着、ゲームオーバーなら残念な表示）
+  // 画面全体を覆うので、この後はお店の操作ができなくなる
+  showEnd(kind) {
+    const cleared = kind === 'clear';
+    const overlay = makeEl('div', 'end-overlay ' + (cleared ? 'is-clear' : 'is-over'), this.root);
+    overlay.innerHTML = cleared
+      ? `<div class="end-title">クリア！</div>
+         <div class="end-scene">
+           <div class="end-senpai">${Assets.icon('senpai', '🐕')}</div>
+           <div class="end-bubble">${CONFIG.texts.senpaiArrive}</div>
+         </div>`
+      : `<div class="end-title">ゲームオーバー</div>
+         <div class="end-scene">
+           <div class="end-player">${Assets.icon('player_sad', '🐶')}</div>
+           <div class="end-bubble">${CONFIG.texts.gameOver}</div>
+         </div>`;
+    const btn = makeEl('button', 'btn end-btn', overlay);
+    btn.textContent = '結果を見る';
+    btn.onclick = () => Scenes.go('result', Game.summary());
   },
 
   // 要素の上にふわっと文字を出す

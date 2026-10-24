@@ -61,6 +61,7 @@ const Game = {
       nextCustomerIn: diff.firstCustomerDelay, // 次の客が来るまでの残り時間
       served: 0,            // 正しく提供した数
       troubles: [],         // 起きたトラブルの記録 { kind, time }
+      ended: null,          // ゲームが終わったら 'clear'（クリア）か 'over'（ゲームオーバー）
     };
     this.events = [];
   },
@@ -71,9 +72,16 @@ const Game = {
   // ---------------------------------------------------------
   update(realDt) {
     const s = this.state;
-    if (!s) return;
+    if (!s || s.ended) return; // 終わったら時間を止める
     const dt = realDt * CONFIG.timeScale; // ゲーム内の経過秒数
     s.time += dt;
+
+    // --- 先輩が来る時間まで耐えたらクリア ---
+    if (s.time >= s.diff.duration) {
+      s.time = s.diff.duration;
+      this.end('clear');
+      return;
+    }
 
     // --- カリカリを注ぐ（プレイヤーの操作なので「現実の時間」で増やす） ---
     if (s.pouring) {
@@ -149,7 +157,7 @@ const Game = {
     const seat = s.seats[seatIndex];
     seat.status = 'waiting';
     seat.customer = {
-      dog: randomPick(CONFIG.customerDogs),
+      dogIndex: randomInt(0, CONFIG.customerDogs.length - 1), // 見た目の番号
       order: this.makeOrder(),
       patience: s.diff.patience,  // 待てる時間（バーの長さの基準）
       waitLeft: s.diff.patience,  // 残りの待てる時間
@@ -528,11 +536,53 @@ const Game = {
     return true;
   },
 
-  // トラブルを記録する（フェーズ3でライフやゲームオーバーにつなげる）
+  // ---------------------------------------------------------
+  // トラブルと勝敗
+  // ---------------------------------------------------------
+
+  // トラブルを記録する。許される回数に達したらゲームオーバー
   addTrouble(kind) {
     const s = this.state;
+    if (s.ended) return;
     s.troubles.push({ kind, time: s.time });
     this.emit('trouble', { kind });
+    if (s.troubles.length >= this.troublesAllowed()) {
+      this.end('over');
+    }
+  },
+
+  // 許されるトラブルの回数（難易度に書いてあればそちらを優先）
+  troublesAllowed() {
+    const d = this.state.diff;
+    return d.troublesAllowed !== undefined ? d.troublesAllowed : CONFIG.troublesAllowed;
+  },
+
+  // ゲームを終える（kind: 'clear' か 'over'）
+  end(kind) {
+    const s = this.state;
+    if (s.ended) return;
+    s.ended = kind;
+    s.pouring = false;
+    this.emit('gameEnd', { kind });
+  },
+
+  // 結果画面に渡す成績のまとめ
+  summary() {
+    const s = this.state;
+    const troubleCounts = {};
+    for (const kind of Object.keys(CONFIG.troubleNames)) {
+      troubleCounts[kind] = s.troubles.filter((t) => t.kind === kind).length;
+    }
+    return {
+      difficultyKey: s.difficultyKey,
+      difficultyName: s.diff.name,
+      cleared: s.ended === 'clear',
+      served: s.served,
+      troubles: s.troubles.length,
+      troubleCounts,
+      time: s.time,                  // 耐えた時間（ゲーム内の秒）
+      duration: s.diff.duration,     // 耐える必要があった時間
+    };
   },
 
   // 画面に知らせたい出来事を箱に入れる

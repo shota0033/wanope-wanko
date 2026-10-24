@@ -9,19 +9,13 @@
 </head>
 <body>
   <!-- ゲーム領域（1280×720 で作り、main.js でウィンドウに合わせて拡大縮小する） -->
+  <!-- 各画面の中身は scenes.js（プレイ画面は view.js）が作る -->
   <div id="stage">
-
-    <!-- タイトル画面 -->
-    <div id="scene-title" class="scene">
-      <div class="title-dog">🐕🍚</div>
-      <h1 class="title-name"></h1>
-      <p class="title-sub">先輩が来るまで、ワンオペでお店を回そう！</p>
-      <button class="btn btn-start">あそぶ（試作版）</button>
-    </div>
-
-    <!-- プレイ画面（中身は view.js が作る） -->
-    <div id="scene-play" class="scene"></div>
-
+    <div id="scene-title" class="scene"></div>   <!-- タイトル -->
+    <div id="scene-select" class="scene"></div>  <!-- 難易度選択 -->
+    <div id="scene-intro" class="scene"></div>   <!-- 導入（先輩からの連絡） -->
+    <div id="scene-play" class="scene"></div>    <!-- プレイ -->
+    <div id="scene-result" class="scene"></div>  <!-- 結果 -->
   </div>
 
   <!-- スマホを縦向きにしているときのお知らせ -->

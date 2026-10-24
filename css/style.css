@@ -69,21 +69,130 @@ html, body {
   box-shadow: 0 4px 0 #8e8170;
 }
 
-/* ---------- タイトル画面 ---------- */
-#scene-title {
+.btn-big { min-height: 80px; padding: 0 56px; font-size: 32px; }
+.btn-sub { min-height: 64px; padding: 0 32px; font-size: 22px; background: #8a6a50; box-shadow: 0 4px 0 #5e4636; }
+
+/* 画像に差し替えたアイコン（文字の大きさに合わせる） */
+.icon-img { height: 1.1em; width: auto; vertical-align: middle; pointer-events: none; }
+
+/* ---------- プレイ以外の画面（タイトル・難易度選択・導入・結果）共通 ---------- */
+#scene-title, #scene-select, #scene-intro, #scene-result {
   text-align: center;
   background: linear-gradient(#fbe9cf, #f0cf9f);
 }
-#scene-title.active {
+#scene-title.active, #scene-select.active, #scene-intro.active, #scene-result.active {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
-.title-dog { font-size: 110px; }
+.scene-heading { margin: 0 0 30px; font-size: 40px; color: #7a3f1a; }
+
+/* ---------- タイトル画面 ---------- */
+.title-dog { font-size: 110px; line-height: 1.1; }
+.title-bowl { font-size: 70px; }
 .title-name { margin: 10px 0; font-size: 72px; color: #7a3f1a; }
 .title-sub { margin: 0 0 40px; font-size: 26px; }
-.btn-start { min-height: 80px; padding: 0 60px; font-size: 32px; }
+
+/* ---------- 難易度選択 ---------- */
+.diff-cards { display: flex; gap: 28px; margin-bottom: 36px; }
+.diff-card {
+  width: 300px;
+  padding: 24px 20px;
+  border: 4px solid #d8b78e;
+  border-radius: 20px;
+  background: #fffaf2;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #c9a27a;
+}
+.diff-card:active { transform: translateY(4px); box-shadow: 0 2px 0 #c9a27a; }
+.card-name { font-size: 36px; font-weight: bold; color: #7a3f1a; margin-bottom: 12px; }
+.card-info { list-style: none; padding: 0; margin: 0 0 14px; font-size: 20px; line-height: 1.8; }
+.card-record { font-size: 16px; color: #8a6a50; }
+
+/* ---------- 導入（スマホの連絡画面風） ---------- */
+.phone {
+  width: 760px;
+  border: 6px solid #5a4030;
+  border-radius: 28px;
+  background: #fff;
+  overflow: hidden;
+  margin-bottom: 36px;
+  text-align: left;
+}
+.phone-head { background: #5a4030; color: #fff; font-size: 22px; padding: 10px 20px; }
+.phone-body { display: flex; align-items: flex-start; gap: 18px; padding: 28px; }
+.phone-icon { font-size: 72px; line-height: 1; }
+.phone-bubble {
+  flex: 1;
+  background: #e8f6d8;
+  border-radius: 18px;
+  padding: 18px 22px;
+  font-size: 24px;
+  line-height: 1.7;
+}
+.intro-buttons, .result-buttons { display: flex; gap: 24px; align-items: center; }
+
+/* ---------- 結果画面 ---------- */
+.result-box {
+  min-width: 560px;
+  padding: 28px 40px;
+  border: 5px solid #d8b78e;
+  border-radius: 24px;
+  background: #fffaf2;
+  margin-bottom: 30px;
+}
+.result-title { font-size: 56px; font-weight: bold; }
+.result-box.is-clear .result-title { color: #e2742f; }
+.result-box.is-over .result-title { color: #6a6a7a; }
+.result-diff { font-size: 22px; margin: 4px 0 16px; color: #8a6a50; }
+.result-rank { font-size: 30px; font-weight: bold; margin-bottom: 12px; }
+.result-table { margin: 0 auto; border-collapse: collapse; font-size: 24px; }
+.result-table th { text-align: left; padding: 6px 30px 6px 0; font-weight: normal; }
+.result-table td { text-align: right; padding: 6px 0; font-weight: bold; }
+
+/* ---------- ゲーム終了の演出（プレイ画面の上に重ねる） ---------- */
+.end-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: rgba(255, 245, 225, 0.85);
+  animation: fadeIn 0.5s;
+}
+.end-overlay.is-over { background: rgba(60, 60, 70, 0.75); }
+.end-title { font-size: 80px; font-weight: bold; color: #e2742f; text-shadow: 0 4px 0 #fff; }
+.end-overlay.is-over .end-title { color: #fff; text-shadow: none; }
+.end-scene { display: flex; align-items: center; gap: 20px; }
+.end-senpai, .end-player { font-size: 110px; line-height: 1; }
+/* 先輩が右から走ってくる */
+.end-senpai { animation: runIn 1.2s ease-out; }
+.end-bubble {
+  max-width: 560px;
+  background: #fff;
+  border: 4px solid #5a4030;
+  border-radius: 20px;
+  padding: 16px 24px;
+  font-size: 28px;
+  animation: fadeIn 0.5s 0.9s both;
+}
+/* 結果ボタンは演出が終わってから出す */
+.end-btn { min-height: 72px; padding: 0 48px; font-size: 28px; animation: fadeIn 0.5s 1.4s both; }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes runIn {
+  from { transform: translateX(700px); }
+  70%  { transform: translateX(-20px); }
+  to   { transform: translateX(0); }
+}
 
 /* ---------- プレイ画面：上部のバー ---------- */
 .topbar {
@@ -99,9 +208,34 @@ html, body {
   color: #fff;
   font-size: 18px;
 }
-.topbar-title { font-weight: bold; font-size: 20px; }
-.topbar-note { font-size: 14px; background: #a8693d; padding: 2px 10px; border-radius: 10px; }
+.topbar-note { font-size: 15px; background: #a8693d; padding: 2px 10px; border-radius: 10px; }
 .topbar-stat b { font-size: 22px; }
+.hud-label { font-size: 15px; opacity: 0.85; margin-right: -14px; }
+
+/* 先輩が来るまでの進行バー */
+.progress {
+  position: relative;
+  width: 480px; height: 16px;
+  border-radius: 8px;
+  background: #4e2e18;
+}
+.progress-fill { height: 100%; width: 0; border-radius: 8px; background: #f0b44a; }
+.progress-senpai {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -55%) scaleX(-1); /* 右向きに走る */
+  font-size: 24px;
+  line-height: 1;
+}
+.progress-goal { position: absolute; right: -12px; top: 50%; transform: translateY(-55%); font-size: 22px; }
+
+/* ライフ */
+.hud-lives { font-size: 20px; letter-spacing: 2px; }
+.hud-lives.shake { animation: shake 0.4s; }
+@keyframes shake {
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
 
 /* ---------- 客席 ---------- */
 .seat-area {
