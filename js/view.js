@@ -36,7 +36,10 @@ const View = {
       <span class="hud-lives"></span>
       <span class="topbar-stat">提供 <b data-stat="served">0</b></span>
       <span class="topbar-stat">どんぶり <b data-stat="bowls">0</b></span>
+      <div class="btn pause-btn">⏸ 中断</div>
     `;
+    // 一時停止ボタン（メニューは scenes.js の PlayScene が出す）
+    Input.register(els.topbar.querySelector('.pause-btn'), { tap: () => PlayScene.pause() });
     els.progressFill = els.topbar.querySelector('.progress-fill');
     els.progressSenpai = els.topbar.querySelector('.progress-senpai');
     els.lives = els.topbar.querySelector('.hud-lives');

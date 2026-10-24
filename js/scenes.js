@@ -129,18 +129,29 @@ const IntroScene = {
 // プレイ画面
 // -------------------------------------------------------------
 const PlayScene = {
-  running: false,
+  running: false, // ゲームループが動いているか
+  paused: false,  // 一時停止中か
 
   enter(params) {
+    this.difficulty = params.difficulty;
     Game.start(params.difficulty);
     View.build(this.el);
+    this.paused = false;
     this.running = true;
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+    // アプリを切り替えたり画面を消したりしたら、自動で一時停止する（1回だけ登録）
+    if (!this.visibilityHooked) {
+      this.visibilityHooked = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && this.running) this.pause();
+      });
+    }
   },
 
   exit() {
     this.running = false;
+    this.paused = false;
     Input.reset();
   },
 
@@ -150,9 +161,41 @@ const PlayScene = {
     // 前回からの経過秒数。タブを裏に回していたときなどに一気に進まないよう、最大0.1秒にする
     const dt = Math.min(0.1, (now - this.lastTime) / 1000);
     this.lastTime = now;
-    Game.update(dt);
+    if (!this.paused) Game.update(dt); // 一時停止中は時間を進めない
     View.render();
     requestAnimationFrame((t) => this.loop(t));
+  },
+
+  // 一時停止して、メニューを出す
+  pause() {
+    if (this.paused || !Game.state || Game.state.ended) return; // ゲームが終わった後は出さない
+    this.paused = true;
+    Game.state.pouring = false; // カリカリを注いでいる途中なら止める
+    const menu = document.createElement('div');
+    menu.className = 'pause-overlay';
+    menu.innerHTML = `
+      <div class="pause-title">一時停止中</div>
+      <div class="pause-buttons">
+        <button class="btn btn-big btn-resume">つづける</button>
+        <button class="btn btn-sub btn-restart">最初からやり直す</button>
+        <button class="btn btn-sub btn-select">難易度選択へ</button>
+        <button class="btn btn-sub btn-title">タイトルへ</button>
+      </div>
+      <div class="pause-note">※ やり直す・戻ると、今回のプレイは記録されません</div>
+    `;
+    this.el.appendChild(menu);
+    menu.querySelector('.btn-resume').onclick = () => this.resume();
+    menu.querySelector('.btn-restart').onclick = () => Scenes.go('play', { difficulty: this.difficulty });
+    menu.querySelector('.btn-select').onclick = () => Scenes.go('select');
+    menu.querySelector('.btn-title').onclick = () => Scenes.go('title');
+  },
+
+  // 一時停止を解いて、ゲームを再開する
+  resume() {
+    const menu = this.el.querySelector('.pause-overlay');
+    if (menu) menu.remove();
+    this.paused = false;
+    this.lastTime = performance.now(); // 止まっていた時間をまとめて進めないように
   },
 };
 
