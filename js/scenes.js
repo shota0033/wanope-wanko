@@ -58,6 +58,7 @@ const TitleScene = {
       <h1 class="title-name">${CONFIG.title}</h1>
       <p class="title-sub">先輩が来るまで、ワンオペでお店を回そう！</p>
       <button class="btn btn-big">はじめる</button>
+      <div class="title-version">ver.${CONFIG.version}</div>
     `;
     this.el.querySelector('button').onclick = () => Scenes.go('select');
   },
