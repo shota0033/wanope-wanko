@@ -167,7 +167,7 @@ const CONFIG = {
       seats: 4,                    // 客席の数
       workbenchSlots: 3,           // 作業台に置けるどんぶりの数
       toppingCount: 8,             // 使うトッピングの種類数（一覧の上から順）
-      toppingsPerOrder: [1, 2],    // 1つの注文に入るトッピングの種類数
+      toppingCountWeights: [1, 2, 0, 0], // 注文のトッピング数の出やすさ（1個:2個:3個:4個 の比）
       totalBowls: 8,               // 店にあるどんぶりの総数
       sinkCapacity: 6,             // 流しに置ける上限
       washerCapacity: 5,           // 食洗機に一度に入る数
@@ -184,7 +184,7 @@ const CONFIG = {
       seats: 6,
       workbenchSlots: 3,
       toppingCount: 12,
-      toppingsPerOrder: [1, 3],
+      toppingCountWeights: [2, 2, 2, 1],
       totalBowls: 10,
       sinkCapacity: 7,
       washerCapacity: 5,
@@ -201,7 +201,7 @@ const CONFIG = {
       seats: 10,
       workbenchSlots: 3,
       toppingCount: 19,
-      toppingsPerOrder: [1, 4],
+      toppingCountWeights: [2, 3, 3, 1],
       totalBowls: 14,
       sinkCapacity: 8,
       washerCapacity: 6,

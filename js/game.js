@@ -189,8 +189,10 @@ const Game = {
   makeOrder() {
     const s = this.state;
     const size = randomPick(Object.keys(CONFIG.kibble.lines)); // small / medium / large
-    const [min, max] = s.diff.toppingsPerOrder;
-    const count = randomInt(min, Math.min(max, s.toppingIds.length));
+    // トッピングの数：toppingCountWeights の比で決める（例 [2,3,3,1] → 1個:2個:3個:4個 = 2:3:3:1）
+    // 使う食材の種類より多い個数は出さない
+    const weights = s.diff.toppingCountWeights.slice(0, s.toppingIds.length);
+    const count = weightedIndex(weights) + 1;
     // トッピングをシャッフルして先頭から count 個選ぶ
     const picked = shuffle(s.toppingIds.slice()).slice(0, count);
     // 表示が毎回バラバラにならないよう、一覧の順番に並べ直す
@@ -707,6 +709,22 @@ function randomPick(arr) {
 // [最小, 最大] の範囲のランダムな小数
 function randomRange([min, max]) {
   return min + Math.random() * (max - min);
+}
+
+// 重み（出やすさの比）に従って、配列の番号を1つ選ぶ
+// 例：weightedIndex([1, 2, 0]) → 0 が 1/3、1 が 2/3 の確率で選ばれ、2 は選ばれない
+function weightedIndex(weights) {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r < 0) return i;
+  }
+  // 計算の誤差で最後まで来たときは、重みが0でない最後の番号を返す
+  for (let i = weights.length - 1; i >= 0; i--) {
+    if (weights[i] > 0) return i;
+  }
+  return 0;
 }
 
 // min 以上 max 以下のランダムな整数
