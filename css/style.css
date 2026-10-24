@@ -734,6 +734,10 @@ html, body {
 }
 .fridge-panel .shelf-grid { grid-auto-rows: 72px; }
 .fridge-panel .topping-cell { border-color: #a9cde4; }
+/* 冷蔵庫の一覧の残量：少ない・切れているものを目立たせて、補充する食材を選びやすくする */
+.fridge-panel .topping-cell.stock-low .stock-count { background: #e8901c; }
+.fridge-panel .topping-cell.stock-out .stock-count { background: #d43a2a; }
+.fridge-panel .topping-cell.stock-out { border-color: #e88a7a; }
 
 /* ---------- ドラッグ中に指についてくる絵 ---------- */
 .ghost {

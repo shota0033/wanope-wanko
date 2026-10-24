@@ -222,12 +222,14 @@ const View = {
     closeBtn.textContent = '閉じる';
     Input.register(closeBtn, { tap: () => this.setFridgeOpen(false) });
     const fridgeGrid = makeEl('div', 'shelf-grid', els.fridgePanel);
+    els.fridgeCounts = {}; // 冷蔵庫の一覧にも、トッピング棚の残量を表示する（開いている間も在庫がわかるように）
     for (const id of s.toppingIds) {
       const t = toppingInfo(id);
       const cell = makeEl('div', 'topping-cell', fridgeGrid);
       // 左上に下処理の方法の印（🔪 切る / ♨️ 茹でる）
       cell.innerHTML = `${Assets.icon('whole_' + id, t.icon, 'topping-icon')}<span class="topping-name">${t.name}</span>` +
         `<span class="prep-mark prep-${t.prep}">${t.prep === 'boil' ? '♨️' : '🔪'}</span>`;
+      els.fridgeCounts[id] = { cell, count: makeEl('span', 'stock-count', cell) };
       Input.register(cell, {
         drag: () => ({ type: 'ingredient', id }),
         ghost: () => this.iconGhost(t, 'whole_'),
@@ -386,11 +388,16 @@ const View = {
 
     // トッピングの残量
     for (const id of s.toppingIds) {
-      const { cell, count } = els.toppingCells[id];
       const n = s.stock[id];
+      const { cell, count } = els.toppingCells[id];
       setText(count, n);
       cell.classList.toggle('empty', n <= 0);
       cell.classList.toggle('low', n > 0 && n <= CONFIG.stock.lowWarning);
+      // 冷蔵庫の一覧の数字（食材は無限にあるので灰色にはせず、数字の色だけ変える）
+      const f = els.fridgeCounts[id];
+      setText(f.count, n);
+      f.cell.classList.toggle('stock-low', n <= CONFIG.stock.lowWarning);
+      f.cell.classList.toggle('stock-out', n <= 0);
     }
 
     // まな板
