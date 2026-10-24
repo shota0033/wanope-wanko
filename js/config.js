@@ -12,7 +12,7 @@ const CONFIG = {
   title: 'ワンオペわんこ亭',
 
   // 版番号（タイトル画面の右下に表示）。手で書き換えず、bump-version.sh で上げる
-  version: 2,
+  version: 3,
 
   // ゲーム領域の大きさ（この大きさで画面を作り、ウィンドウに合わせて拡大縮小する）
   stageWidth: 1280,
