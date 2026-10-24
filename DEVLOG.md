@@ -7,7 +7,7 @@
 
 ## 今の状態（2026-10-25 時点）
 
-- **公開中：ver.3**　https://shota0033.github.io/wanope-wanko/
+- **公開中：ver.4**　https://shota0033.github.io/wanope-wanko/
 - リポジトリ：https://github.com/shota0033/wanope-wanko（ブランチ `master`）
 - スマホは「ホーム画面に追加」すると、アプリのように全画面で起動できる
 - 仕様書のフェーズ0〜4はすべて完了し、遊びながら調整している段階
