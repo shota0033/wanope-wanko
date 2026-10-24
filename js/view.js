@@ -186,26 +186,26 @@ const View = {
     els.pots = s.pots.map((_, i) => {
       const root = makeEl('div', 'pot', potArea);
       const content = makeEl('div', 'pot-content', root);
+      // 茹で具合のゲージ（火がついている間だけ表示）
       const gauge = makeEl('div', 'pot-gauge', root);
-      // ゲージの中の「ちょうどいい」範囲（緑の帯）
+      // ゲージの中の「ちょうどいい」範囲（緑の帯）。位置は入れた種類数で変わるので render で決める
       const zone = makeEl('div', 'pot-gauge-zone', gauge);
-      zone.style.left = (CONFIG.boil.readyAt / CONFIG.boil.overAt) * 100 + '%';
-      zone.style.right = '0';
       const fill = makeEl('div', 'pot-gauge-fill', gauge);
       const label = makeEl('div', 'pot-label', root);
       Input.register(root, {
+        // タップ：火をつける／取り出す／煮すぎを捨てる（Game.takeFromPot が状態に合わせて判断）
         tap: () => Game.takeFromPot(i),
-        // 鍋の食材は、ゴミ箱へドラッグして捨てられる
+        // 鍋の中身は、ゴミ箱へドラッグすると全部捨てられる
         drag: () => (Game.state.pots[i] ? { type: 'potItem', pot: i } : null),
-        ghost: () => this.iconGhost(toppingInfo(Game.state.pots[i].id), 'whole_'),
+        ghost: () => this.iconGhost(toppingInfo(Game.state.pots[i].items[0]), 'whole_'),
         drop: {
-          accepts: (p) => p.type === 'ingredient' && !Game.state.pots[i],
-          onDrop: (p) => {
-            if (Game.putInPot(i, p.id)) this.setFridgeOpen(false);
-          },
+          // 火をつける前なら受け取る（種類の重複や上限は Game 側で判定して知らせる）
+          accepts: (p) => p.type === 'ingredient' && !(Game.state.pots[i] && Game.state.pots[i].lit),
+          // 何種類か続けて入れられるよう、冷蔵庫は開いたままにする
+          onDrop: (p) => Game.putInPot(i, p.id),
         },
       });
-      return { root, content, fill, label, key: null };
+      return { root, content, gauge, zone, fill, label, key: null };
     });
 
     // --- 冷蔵庫（タップすると、トッピング棚の上に食材の一覧が開く） ---
@@ -412,19 +412,29 @@ const View = {
     s.pots.forEach((pot, i) => {
       const e = els.pots[i];
       const status = pot ? Game.potStatus(pot) : 'empty';
-      const key = pot ? pot.id + '|' + status : 'empty';
+      const key = pot ? pot.items.join(',') + '|' + status : 'empty';
       if (e.key !== key) {
         e.key = key;
-        e.content.innerHTML = pot ? Assets.icon('whole_' + pot.id, toppingInfo(pot.id).icon) : '';
+        e.content.innerHTML = pot
+          ? pot.items.map((id) => Assets.icon('whole_' + id, toppingInfo(id).icon)).join('')
+          : '';
+        e.content.dataset.count = pot ? pot.items.length : 0; // 数に応じて絵の大きさを変える（CSS）
         e.label.innerHTML = {
           empty: '♨️の食材を<br>ここへ',
+          waiting: `${pot ? pot.items.length : 0}/${CONFIG.boil.capacity}種類<br>タップで点火`,
           boiling: '茹でています…',
           ready: 'ちょうどいい！<br>タップで取り出す',
           over: '煮すぎ…<br>タップで捨てる',
         }[status];
         e.root.className = 'pot pot-' + status;
+        // 「ちょうどいい」の帯の位置（火がついてから決まる）
+        if (pot && pot.lit) {
+          e.zone.style.left = (pot.readyAt / pot.overAt) * 100 + '%';
+          e.zone.style.right = '0';
+        }
       }
-      e.fill.style.width = pot ? Math.min(1, pot.time / CONFIG.boil.overAt) * 100 + '%' : '0';
+      e.gauge.style.visibility = pot && pot.lit ? 'visible' : 'hidden';
+      e.fill.style.width = pot && pot.lit ? Math.min(1, pot.time / pot.overAt) * 100 + '%' : '0';
     });
   },
 
@@ -591,6 +601,7 @@ const View = {
       case 'trash':          this.floatText(this.els.trash, 'ポイッ', 'small'); break;
       case 'overcooked':     this.floatText(this.els.pots[ev.pot].root, '💦 煮すぎた！', 'bad'); break;
       case 'potDiscard':     this.floatText(this.els.pots[ev.pot].root, '食材を捨てた', 'small'); break;
+      case 'potLit':         this.floatText(this.els.pots[ev.pot].root, '🔥 点火！', 'small'); break;
       case 'returnBowl':     this.floatText(this.els.stack, '置き場へ戻した', 'small'); break;
       case 'chop':           this.restartAnimation(this.els.board, 'chopping'); break;
       case 'prepDone': {

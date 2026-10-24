@@ -663,6 +663,12 @@ html, body {
   justify-content: center;
   font-size: 34px;
 }
+/* 2種類以上入っていたら、絵を小さくして並べる */
+.pot-content[data-count="2"] { font-size: 28px; }
+.pot-content[data-count="3"] { font-size: 22px; }
+/* 火をつける前は水色が薄い（まだ冷たい） */
+.pot-waiting .pot-content { background: #d6ebf7; border-style: dashed; }
+.pot-waiting .pot-label { color: #c0561c; }
 .pot-boiling .pot-content { animation: bubble 0.6s ease-in-out infinite alternate; }
 .pot-ready .pot-content { border-color: #2a8a3a; box-shadow: 0 0 10px #7cdc8a; }
 .pot-over .pot-content { background: #b49a7a; border-color: #d43a2a; }
