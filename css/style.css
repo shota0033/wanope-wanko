@@ -75,12 +75,12 @@ html, body {
 /* 画像に差し替えたアイコン（文字の大きさに合わせる） */
 .icon-img { height: 1.1em; width: auto; vertical-align: middle; pointer-events: none; }
 
-/* ---------- プレイ以外の画面（タイトル・難易度選択・導入・結果）共通 ---------- */
-#scene-title, #scene-select, #scene-intro, #scene-result {
+/* ---------- プレイ以外の画面（タイトル・導入・結果）共通 ---------- */
+#scene-title, #scene-intro, #scene-result {
   text-align: center;
   background: linear-gradient(#fbe9cf, #f0cf9f);
 }
-#scene-title.active, #scene-select.active, #scene-intro.active, #scene-result.active {
+#scene-title.active, #scene-intro.active, #scene-result.active {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -88,31 +88,37 @@ html, body {
 }
 .scene-heading { margin: 0 0 30px; font-size: 40px; color: #7a3f1a; }
 
-/* ---------- タイトル画面 ---------- */
-.title-dog { font-size: 110px; line-height: 1.1; }
-.title-bowl { font-size: 70px; }
-.title-name { margin: 10px 0; font-size: 72px; color: #7a3f1a; }
-.title-sub { margin: 0 0 40px; font-size: 26px; }
+/* ---------- タイトル画面（レベル選択） ---------- */
+.title-dog { font-size: 84px; line-height: 1.1; }
+.title-bowl { font-size: 54px; }
+.title-name { margin: 6px 0; font-size: 64px; color: #7a3f1a; }
+.title-sub { margin: 0 0 28px; font-size: 24px; }
 /* 版番号（最新版が表示されているかの確認用） */
 .title-version { position: absolute; right: 20px; bottom: 14px; font-size: 18px; color: #a07a58; }
 
-/* ---------- 難易度選択 ---------- */
-.diff-cards { display: flex; gap: 28px; margin-bottom: 36px; }
-.diff-card {
-  width: 300px;
-  padding: 24px 20px;
+/* レベルのボタン：1段に6個まで並べ、あふれた分は次の段へ（中央そろえ） */
+.level-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  width: 1100px;
+}
+.level-btn {
+  width: 160px;
+  padding: 14px 8px;
   border: 4px solid #d8b78e;
-  border-radius: 20px;
+  border-radius: 18px;
   background: #fffaf2;
   font-family: inherit;
   color: inherit;
   cursor: pointer;
   box-shadow: 0 6px 0 #c9a27a;
 }
-.diff-card:active { transform: translateY(4px); box-shadow: 0 2px 0 #c9a27a; }
-.card-name { font-size: 36px; font-weight: bold; color: #7a3f1a; margin-bottom: 12px; }
-.card-info { list-style: none; padding: 0; margin: 0 0 14px; font-size: 20px; line-height: 1.8; }
-.card-record { font-size: 16px; color: #8a6a50; }
+.level-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #c9a27a; }
+.level-btn.is-cleared { border-color: #e2a93a; background: #fff3d6; }
+.level-name { font-size: 36px; font-weight: bold; color: #7a3f1a; }
+.level-record { margin-top: 4px; font-size: 16px; color: #8a6a50; }
 
 /* ---------- 導入（スマホの連絡画面風） ---------- */
 .phone {

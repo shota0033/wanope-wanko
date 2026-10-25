@@ -16,15 +16,20 @@ const Game = {
   // ---------------------------------------------------------
   // ゲーム開始：お店の状態を初期化する
   // ---------------------------------------------------------
-  start(difficultyKey) {
-    const diff = CONFIG.difficulties[difficultyKey];
-    // 使うトッピング（一覧の上から toppingCount 個）
-    const toppingIds = CONFIG.toppings.slice(0, diff.toppingCount).map((t) => t.id);
+  start(level) {
+    const diff = levelSettings(level);
+    // 使うトッピング：切る・茹でるから、それぞれ toppingKinds 種類をランダムに選ぶ（並びは一覧の順）
+    const picked = [];
+    for (const prep of ['cut', 'boil']) {
+      const ids = CONFIG.toppings.filter((t) => t.prep === prep).map((t) => t.id);
+      picked.push(...shuffle(ids).slice(0, diff.toppingKinds));
+    }
+    const toppingIds = CONFIG.toppings.map((t) => t.id).filter((id) => picked.includes(id));
 
     this.state = {
-      difficultyKey,
-      diff,                 // 難易度の設定
-      time: 0,              // 経過したゲーム内時間（秒）
+      level,
+      diff,                 // このレベルの設定（levelSettings で組み立てたもの）
+      time: 0,              // ゲーム開始からの経過時間（秒）
       toppingIds,
 
       // 客席。status は次のどれか：
@@ -45,7 +50,7 @@ const Game = {
       slots: Array(diff.workbenchSlots).fill(null),
       selectedSlot: null,   // 選択中の作業台の番号（カリカリを注ぐ先）
       pouring: false,       // カリカリタンクを長押し中か
-      kibbleTank: CONFIG.kibbleTank.initial, // カリカリタンクの残り（単位）
+      kibbleTank: diff.kibbleCapacity, // カリカリタンクの残り（単位）。満タンから始まる
 
       // トッピングの残量（例：{ carrot: 5, broccoli: 5, ... }）
       stock: Object.fromEntries(toppingIds.map((id) => [id, CONFIG.stock.initial])),
@@ -59,13 +64,12 @@ const Game = {
       sink: 0,              // 流しにある汚れたどんぶりの数
       // 手洗い中のどんぶり。null なら手洗いしていない、洗っていれば { taps: こすった回数 }
       handWash: null,
-      realTime: 0,          // ゲーム開始からの「現実の」経過秒数（手洗いのタップ間隔の判定に使う）
-      lastScrubAt: -999,    // 最後にこすったと数えた時刻（realTime）
+      lastScrubAt: -999,    // 最後にこすったと数えた時刻（time）
 
       // 食洗機。status は 'idle'（空）/ 'washing'（洗浄中）/ 'done'（洗い上がり）
       washer: { status: 'idle', count: 0, timeLeft: 0 },
 
-      nextCustomerIn: diff.firstCustomerDelay, // 次の客が来るまでの残り時間
+      customerClock: 0,     // 客の抽選用の時計。1秒たまるごとに1回抽選する
       // 満席のときに並んでいる客（画面には出さない）。それぞれ { waitLeft: 残りの待てる時間 }
       queue: [],
       served: 0,            // 正しく提供した数
@@ -77,14 +81,12 @@ const Game = {
 
   // ---------------------------------------------------------
   // 毎フレーム呼ばれる：時間を進める
-  //   realDt … 前のフレームからの「現実の」経過秒数
+  //   dt … 前のフレームからの経過秒数
   // ---------------------------------------------------------
-  update(realDt) {
+  update(dt) {
     const s = this.state;
     if (!s || s.ended) return; // 終わったら時間を止める
-    const dt = realDt * CONFIG.timeScale; // ゲーム内の経過秒数
     s.time += dt;
-    s.realTime += realDt;
 
     // --- 先輩が来る時間まで耐えたらクリア ---
     if (s.time >= s.diff.duration) {
@@ -93,14 +95,14 @@ const Game = {
       return;
     }
 
-    // --- カリカリを注ぐ（プレイヤーの操作なので「現実の時間」で増やす） ---
+    // --- カリカリを注ぐ ---
     //     注いだ量に応じてタンクが減り、空になったら止まる
     if (s.pouring) {
       const bowl = this.selectedBowl();
       if (bowl && s.kibbleTank > 0) {
         const k = CONFIG.kibble;
         const add = Math.min(
-          k.pourPerSecond * realDt,       // 今回のフレームで注げる量
+          k.pourPerSecond * dt,           // 今回のフレームで注げる量
           k.bowlMax - bowl.kibble,        // どんぶりに入る残り
           s.kibbleTank * k.amountPerUnit  // タンクに残っている量
         );
@@ -156,11 +158,14 @@ const Game = {
       }
     });
 
-    // --- 新しい客：満席でも一定間隔で来て、まず裏の行列（画面には出ない）に並ぶ ---
-    s.nextCustomerIn -= dt;
-    if (s.nextCustomerIn <= 0) {
-      s.queue.push({ waitLeft: s.diff.queuePatience });
-      s.nextCustomerIn = randomRange(s.diff.customerInterval);
+    // --- 新しい客：1秒に1回抽選し、確率 customerChance で1人来る ---
+    //     満席でも来て、まず裏の行列（画面には出ない）に並ぶ
+    s.customerClock += dt;
+    while (s.customerClock >= 1) {
+      s.customerClock -= 1;
+      if (Math.random() < s.diff.customerChance) {
+        s.queue.push({ waitLeft: s.diff.queuePatience });
+      }
     }
 
     // --- 行列の先頭から、空いている席に座らせる ---
@@ -201,7 +206,8 @@ const Game = {
   // ランダムな注文を作る
   makeOrder() {
     const s = this.state;
-    const size = randomPick(Object.keys(CONFIG.kibble.lines)); // small / medium / large
+    // 盛り：sizeWeights の比で決める（小:並:大）
+    const size = Object.keys(CONFIG.kibble.lines)[weightedIndex(s.diff.sizeWeights)]; // small / medium / large
     // トッピングの数：toppingCountWeights の比で決める（例 [2,3,3,1] → 1個:2個:3個:4個 = 2:3:3:1）
     // 使う食材の種類より多い個数は出さない
     const weights = s.diff.toppingCountWeights.slice(0, s.toppingIds.length);
@@ -295,12 +301,13 @@ const Game = {
   refillKibbleTank() {
     const s = this.state;
     const t = CONFIG.kibbleTank;
-    if (s.kibbleTank >= t.capacity) {
+    const capacity = s.diff.kibbleCapacity;
+    if (s.kibbleTank >= capacity) {
       this.emit('hint', { text: 'タンクはいっぱいです' });
       return false;
     }
     const before = s.kibbleTank;
-    s.kibbleTank = Math.min(t.capacity, s.kibbleTank + t.refill);
+    s.kibbleTank = Math.min(capacity, s.kibbleTank + t.refill);
     this.emit('kibbleRefill', { added: s.kibbleTank - before });
     return true;
   },
@@ -432,11 +439,10 @@ const Game = {
     }
     const status = this.potStatus(pot);
     if (status === 'waiting') {
-      const b = CONFIG.boil;
       pot.lit = true;
       pot.time = 0;
-      pot.readyAt = b.baseTime + b.perExtra * (pot.items.length - 1);
-      pot.overAt = pot.readyAt + b.readyWindow;
+      pot.readyAt = s.diff.boilTimes[pot.items.length - 1]; // 入れた種類数で茹で時間が決まる
+      pot.overAt = pot.readyAt + CONFIG.boil.readyWindow;
       this.emit('potLit', { pot: potIndex });
       return true;
     }
@@ -513,7 +519,7 @@ const Game = {
     if (this.isMatch(bowl, seat.customer.order)) {
       // 正解：食べ始める
       seat.status = 'eating';
-      seat.customer.eatLeft = randomRange(s.diff.eatTime);
+      seat.customer.eatLeft = s.diff.eatTime;
       s.served++;
       this.emit('serveOk', { seat: seatIndex });
     } else {
@@ -633,8 +639,8 @@ const Game = {
       s.sink--;
       s.handWash = { taps: 0 };
     }
-    if (s.realTime - s.lastScrubAt < hw.minInterval) return false; // 速すぎるので数えない
-    s.lastScrubAt = s.realTime;
+    if (s.time - s.lastScrubAt < hw.minInterval) return false; // 速すぎるので数えない
+    s.lastScrubAt = s.time;
     s.handWash.taps++;
     this.emit('scrub');
     if (s.handWash.taps >= hw.taps) {
@@ -660,10 +666,9 @@ const Game = {
     }
   },
 
-  // 許されるトラブルの回数（難易度に書いてあればそちらを優先）
+  // 許されるトラブルの回数（ライフ）
   troublesAllowed() {
-    const d = this.state.diff;
-    return d.troublesAllowed !== undefined ? d.troublesAllowed : CONFIG.troublesAllowed;
+    return this.state.diff.troublesAllowed;
   },
 
   // ゲームを終える（kind: 'clear' か 'over'）
@@ -683,13 +688,13 @@ const Game = {
       troubleCounts[kind] = s.troubles.filter((t) => t.kind === kind).length;
     }
     return {
-      difficultyKey: s.difficultyKey,
-      difficultyName: s.diff.name,
+      level: s.level,
+      levelName: s.diff.name,
       cleared: s.ended === 'clear',
       served: s.served,
       troubles: s.troubles.length,
       troubleCounts,
-      time: s.time,                  // 耐えた時間（ゲーム内の秒）
+      time: s.time,                  // 耐えた時間（秒）
       duration: s.diff.duration,     // 耐える必要があった時間
     };
   },
@@ -704,6 +709,22 @@ const Game = {
 // 便利な小道具
 // -------------------------------------------------------------
 
+// レベルの設定を組み立てる（level は 1 から数える）
+//   CONFIG.levels の段階（例 '11222'）に従って、各グループの項目に CONFIG.levelSteps の値を入れる
+function levelSettings(level) {
+  const pattern = CONFIG.levels[level - 1];
+  const diff = {
+    name: 'Lv.' + level,
+    eatTime: CONFIG.eatTime,
+    workbenchSlots: CONFIG.workbenchSlots,
+  };
+  Object.values(CONFIG.levelGroups).forEach((keys, groupIndex) => {
+    const step = Number(pattern[groupIndex]) - 1; // 段階1〜3 → 配列の番号0〜2
+    for (const key of keys) diff[key] = CONFIG.levelSteps[key][step];
+  });
+  return diff;
+}
+
 // トッピングIDから、名前・アイコン・下処理の方法などの情報を取り出す
 function toppingInfo(id) {
   return CONFIG.toppings.find((t) => t.id === id);
@@ -712,11 +733,6 @@ function toppingInfo(id) {
 // 配列からランダムに1つ選ぶ
 function randomPick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
-}
-
-// [最小, 最大] の範囲のランダムな小数
-function randomRange([min, max]) {
-  return min + Math.random() * (max - min);
 }
 
 // 重み（出やすさの比）に従って、配列の番号を1つ選ぶ

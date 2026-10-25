@@ -414,8 +414,9 @@ const View = {
     els.tank.classList.toggle('pouring', s.pouring && !!Game.selectedBowl() && s.kibbleTank > 0);
     // タンクの残り（表示は整数に切り上げ。0.3単位残っていても「1」と見せて、0は本当に空のときだけ）
     const tank = CONFIG.kibbleTank;
-    els.tankFill.style.height = (s.kibbleTank / tank.capacity) * 100 + '%';
-    setText(els.tankCount, `${Math.ceil(s.kibbleTank)}/${tank.capacity}`);
+    const capacity = s.diff.kibbleCapacity;
+    els.tankFill.style.height = (s.kibbleTank / capacity) * 100 + '%';
+    setText(els.tankCount, `${Math.ceil(s.kibbleTank)}/${capacity}`);
     els.tank.classList.toggle('tank-low', s.kibbleTank > 0 && s.kibbleTank <= tank.lowWarning);
     els.tank.classList.toggle('tank-empty', s.kibbleTank <= 0);
 
