@@ -147,6 +147,7 @@ const View = {
     for (const id of s.toppingIds) {
       const t = toppingInfo(id);
       const cell = makeEl('div', 'topping-cell', grid);
+      cell.style.gridRow = prepRow(t); // 上の段は切る食材、下の段は茹でる食材
       cell.innerHTML = `${Assets.icon('topping_' + id, t.icon, 'topping-icon')}<span class="topping-name">${t.name}</span>`;
       const count = makeEl('span', 'stock-count', cell); // 残量の数字
       Input.register(cell, {
@@ -251,6 +252,7 @@ const View = {
     for (const id of s.toppingIds) {
       const t = toppingInfo(id);
       const cell = makeEl('div', 'topping-cell', fridgeGrid);
+      cell.style.gridRow = prepRow(t); // 棚と同じ並び
       // 左上に下処理の方法の印（🔪 切る / ♨️ 茹でる）
       cell.innerHTML = `${Assets.icon('whole_' + id, t.icon, 'topping-icon')}<span class="topping-name">${t.name}</span>` +
         `<span class="prep-mark prep-${t.prep}">${t.prep === 'boil' ? '♨️' : '🔪'}</span>`;
@@ -724,4 +726,9 @@ function setHTML(el, html) {
 function setText(el, text) {
   text = String(text);
   if (el.textContent !== text) el.textContent = text;
+}
+
+// トッピングの一覧で、その食材を置く段（1=上の段：切る食材、2=下の段：茹でる食材）
+function prepRow(topping) {
+  return topping.prep === 'boil' ? 2 : 1;
 }
