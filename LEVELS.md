@@ -1,7 +1,7 @@
 # レベル分けの相談メモ（わんオペわんこ亭）
 
 細かいレベル分けについて、相談して決めたことと、その経緯をまとめたものです。
-**2026-10-25 に実装済み**（数値は `js/config.js` の `levelSteps`・`levelGroups`・`levels`）。
+**2026-10-25 に実装し、ver.5 で公開済み**（数値は `js/config.js` の `levelSteps`・`levelGroups`・`levels`）。
 
 最終更新：2026-10-25
 
