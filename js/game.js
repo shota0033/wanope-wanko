@@ -217,18 +217,13 @@ const Game = {
   // カリカリ量の判定
   // ---------------------------------------------------------
 
-  // 量から「small / medium / large」を判定する。どの目安線にも近くなければ null
+  // 量から「small / medium / large」を判定する。小盛の区切り以下なら null（空と同じ）
   judgeSize(kibble) {
-    const { lines, tolerance } = CONFIG.kibble;
-    for (const [size, line] of Object.entries(lines)) {
-      if (Math.abs(kibble - line) <= tolerance) return size;
+    let judged = null;
+    for (const [size, line] of Object.entries(CONFIG.kibble.lines)) {
+      if (kibble > line) judged = size; // 区切りは小さい順に書いてあるので、最後に超えたものが答え
     }
-    return null;
-  },
-
-  // 大盛の上限を超えて盛りすぎているか
-  isOverfilled(bowl) {
-    return bowl.kibble > CONFIG.kibble.lines.large + CONFIG.kibble.tolerance;
+    return judged;
   },
 
   // どんぶりが注文どおりか

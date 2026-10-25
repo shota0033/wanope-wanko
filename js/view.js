@@ -530,10 +530,7 @@ const View = {
     let label = '';
     if (bowl && CONFIG.kibble.showJudgeLabel) {
       const size = Game.judgeSize(bowl.kibble);
-      if (Game.isOverfilled(bowl)) label = '盛りすぎ！';
-      else if (size) label = CONFIG.sizeNames[size] + '盛';
-      else if (bowl.kibble <= 0) label = 'カリカリなし';
-      else label = '―';
+      label = size ? CONFIG.sizeNames[size] + '盛' : 'カリカリなし';
     }
 
     // どんぶりの有無・トッピングが変わったときだけ HTML を書き換える
@@ -545,10 +542,8 @@ const View = {
     // カリカリの量は毎フレーム、高さだけ変える
     if (bowl) {
       e.content.querySelector('.kibble').style.height = (bowl.kibble / CONFIG.kibble.bowlMax) * 100 + '%';
-      e.content.querySelector('.bowl-body').classList.toggle('over', Game.isOverfilled(bowl));
     }
     setText(e.label, label);
-    e.label.classList.toggle('warn', !!bowl && Game.isOverfilled(bowl));
     e.root.classList.toggle('selected', s.selectedSlot === i && !!bowl);
   },
 
@@ -559,12 +554,13 @@ const View = {
   // 作業台の大きなどんぶり（目安線つき）
   bowlHTML(bowl) {
     const { lines, bowlMax } = CONFIG.kibble;
-    // 目安線（どんぶりの中）と、その名前（どんぶりの右外側）
+    // 目安線（どんぶりの中、盛りの区切り）と、盛りの名前（どんぶりの右外側、線と線のあいだ）
     const lineHTML = Object.values(lines).map((v) =>
       `<div class="kibble-line" style="bottom:${(v / bowlMax) * 100}%"></div>`
     ).join('');
-    const lineLabelHTML = Object.entries(lines).map(([size, v]) =>
-      `<span class="kibble-line-label" style="bottom:${(v / bowlMax) * 100}%">${CONFIG.sizeNames[size]}</span>`
+    const bounds = Object.values(lines).concat(bowlMax);
+    const lineLabelHTML = Object.keys(lines).map((size, i) =>
+      `<span class="kibble-line-label" style="bottom:${((bounds[i] + bounds[i + 1]) / 2 / bowlMax) * 100}%">${CONFIG.sizeNames[size]}</span>`
     ).join('');
     const toppingHTML = bowl.toppings.map((id) =>
       `<span class="placed-topping" data-topping="${id}">${Assets.icon('topping_' + id, toppingInfo(id).icon)}</span>`
