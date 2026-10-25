@@ -644,7 +644,7 @@ html, body {
 .shelf-grid {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(9, 1fr); /* 1段に最大9個（切る9・茹でる9） */
   grid-auto-rows: 100px;
   gap: 6px;
 }
