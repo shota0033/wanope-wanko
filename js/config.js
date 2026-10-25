@@ -154,6 +154,7 @@ const CONFIG = {
 
   // 全レベル共通の値
   eatTime: 50,         // 客が食べている時間（秒）
+  firstCustomerDelay: 3, // ゲーム開始から最初の客が来るまで（秒）
   workbenchSlots: 3,   // 作業台に置けるどんぶりの数
 
   // 各項目の3段階 [段階1, 段階2, 段階3]（時間はすべて秒）
@@ -170,7 +171,7 @@ const CONFIG = {
     toppingCountWeights: [[1, 1, 0, 0], [2, 1, 1, 1], [1, 2, 2, 2]], // 注文のトッピング数の出やすさ（1個:2個:3個:4個 の比）
     sinkCapacity:        [8, 7, 6],             // 流しに置ける上限
     washerCapacity:      [7, 6, 5],             // 食洗機に一度に入る数
-    customerChance:      [0.05, 0.065, 0.08],   // 1秒に1回の抽選で、客が1人来る確率
+    customerInterval:    [[15, 25], [11, 20], [8, 17]], // 次の客が来るまでの間隔 [最小, 最大]。この範囲の整数秒から均等に選ぶ
     seats:               [6, 8, 9],             // 客席の数
     toppingKinds:        [4, 6, 9],             // 使う食材の種類数（切る・茹でる それぞれこの数）
   },
@@ -181,7 +182,7 @@ const CONFIG = {
     B: ['troublesAllowed', 'kibbleCapacity', 'sizeWeights'],
     C: ['patience', 'washTime', 'queuePatience'],
     D: ['toppingCountWeights', 'sinkCapacity', 'washerCapacity'],
-    E: ['customerChance', 'seats', 'toppingKinds'],
+    E: ['customerInterval', 'seats', 'toppingKinds'],
   },
 
   // 各レベルで使う段階。左から A B C D E の順（例 '11222' → A・B は段階1、C・D・E は段階2）

@@ -69,7 +69,7 @@ const Game = {
       // 食洗機。status は 'idle'（空）/ 'washing'（洗浄中）/ 'done'（洗い上がり）
       washer: { status: 'idle', count: 0, timeLeft: 0 },
 
-      customerClock: 0,     // 客の抽選用の時計。1秒たまるごとに1回抽選する
+      nextCustomerIn: CONFIG.firstCustomerDelay, // 次の客が来るまでの残り時間（秒）
       // 満席のときに並んでいる客（画面には出さない）。それぞれ { waitLeft: 残りの待てる時間 }
       queue: [],
       served: 0,            // 正しく提供した数
@@ -158,14 +158,12 @@ const Game = {
       }
     });
 
-    // --- 新しい客：1秒に1回抽選し、確率 customerChance で1人来る ---
+    // --- 新しい客：customerInterval の範囲から選んだ間隔ごとに1人来る ---
     //     満席でも来て、まず裏の行列（画面には出ない）に並ぶ
-    s.customerClock += dt;
-    while (s.customerClock >= 1) {
-      s.customerClock -= 1;
-      if (Math.random() < s.diff.customerChance) {
-        s.queue.push({ waitLeft: s.diff.queuePatience });
-      }
+    s.nextCustomerIn -= dt;
+    if (s.nextCustomerIn <= 0) {
+      s.queue.push({ waitLeft: s.diff.queuePatience });
+      s.nextCustomerIn += randomInt(...s.diff.customerInterval);
     }
 
     // --- 行列の先頭から、空いている席に座らせる ---
